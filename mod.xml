@@ -1,0 +1,6 @@
+<Mod
+	name="Location tracker"
+	description="Adds a very rough minimap that tracks where you have been."
+	request_no_api_restrictions="0"	
+>
+</Mod>
