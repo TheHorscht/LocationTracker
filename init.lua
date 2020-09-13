@@ -1,34 +1,34 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
 
-local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
-ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
-ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
-ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_newgame_plus_append.lua")
-
 local map_width = 70
 local map_height = 48
 local biome_map_offset_y = 14
 local seen_areas
-local screen_width, screen_height = 427, 242
+local screen_width, screen_height = 427, 242 -- Maybe read it from MagicNumbers:VIRTUAL_RESOLUTION_X and Y instead
 local map
+
+
+
+ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
+if ModIsEnabled("VolcanoBiome") or ModIsEnabled("New Biomes + Secrets") then
+	biome_map_offset_y = 54
+	ModLuaFileAppend("mods/VolcanoBiome/files/scripts/map_loader.lua", "mods/LocationTracker/files/biome_map_append.lua")
+	ModLuaFileAppend("data/scripts/biomes/biome_map_armory_biomes.lua", "mods/LocationTracker/files/biome_map_append.lua")
+else
+	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
+	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
+	ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
+end
 
 function OnWorldPreUpdate()
 	dofile("mods/LocationTracker/files/gui.lua")
-end
-
-local function count_keys(t)
-	local count = 0
-	for k, v in pairs(t) do
-		count = count + 1
-	end
-	return count
 end
 
 local function get_chunk_coords(x, y)
 	return math.floor(x / 512), math.floor(y / 512)
 end
 
--- offset_x is in chunks
+-- offset_ is in chunks
 local function get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
 	offset_x = offset_x or 0
 	offset_y = offset_y or 0
@@ -69,12 +69,7 @@ function OnWorldPostUpdate()
 				seen_areas[encode_coords(xy[1], xy[2])] = true
 			end
 		end
-		GameSetPostFxParameter("uLocationTracker_alpha", HasFlagPersistent("locationtracker_hide_map") and 0 or 1, 0, 0, 0)
-		local data = dofile("mods/LocationTracker/_virtual/map.lua")
-		map_width = data.width
-		map_height = data.height
-		map = data.map
-		print("map loaded")
+		GameAddFlagRun("locationtracker_reload_map")
 		GameSetPostFxParameter("uLocationTracker_sizes", screen_width, screen_height, 3, 3)
 		GameSetPostFxParameter("uLocationTracker_minimap_position", screen_width - 90, 20, 0, 0)
 	end
@@ -86,11 +81,9 @@ function OnWorldPostUpdate()
 		map_width = data.width
 		map_height = data.height
 		map = data.map
-		print("reloading map")
 	end
 	if GameGetFrameNum() % 10 == 0 then
 		if map then
-			print("#map " .. tostring(count_keys(map)))
 			local output = { r = 0, g = 0, b = 0 }
 			local cx, cy = GameGetCameraPos()
 			local dirs = {{-1,-1},{0,-1},{1,-1},{-1,0},{0,0},{1,0},{-1,1},{0,1},{1,1}}
@@ -125,8 +118,3 @@ function OnWorldPostUpdate()
 		end
 	end
 end
-
---[[ 
-  VIRTUAL_RESOLUTION_X="427" 
-  VIRTUAL_RESOLUTION_Y="242" 
- ]]
