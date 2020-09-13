@@ -1,9 +1,5 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
 
-local w, h = 70, 48
-BiomeMapSetSize(w, h)
-BiomeMapLoadImage(0,0, "data/biome_impl/biome_map.png")
-
 local function _BiomeMapGetPixel(x, y)
   local abgr = BiomeMapGetPixel(x, y)
   local b = bit.rshift(bit.band(abgr, 0xff0000), 2 * 8)
@@ -12,6 +8,7 @@ local function _BiomeMapGetPixel(x, y)
   return r, g, b
 end
 
+local w, h = BiomeMapGetSize()
 local content = "return {"
 content = content .. "width = " .. w .. ","
 content = content .. "height = " .. h .. ","
@@ -25,3 +22,4 @@ end
 
 content = content .. "}}\n"
 ModTextFileSetContent("mods/LocationTracker/_virtual/map.lua", content)
+GameAddFlagRun("locationtracker_reload_map")

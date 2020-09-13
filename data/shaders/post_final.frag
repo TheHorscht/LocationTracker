@@ -55,7 +55,6 @@ varying vec2 tex_coord_skylight;
 varying vec2 tex_coord_fogofwar;
 
 
-uniform vec4 uLocationTracker_alpha;
 uniform vec4 uLocationTracker_0_0;
 uniform vec4 uLocationTracker_0_1;
 uniform vec4 uLocationTracker_0_2;
@@ -321,11 +320,13 @@ void main()
 		vec4 extra_data_at_liquid_offset = texture2D( tex_glow_unfiltered, tex_coord_glow + vec2( liquid_distortion_offset.x, -liquid_distortion_offset.y ) );
 		liquid_distortion_offset *= step( SHADING_LIQUID_BITS_ALPHA, extra_data_at_liquid_offset.a );
 
-
-		// tex_coord.y = 1.0 - tex_coord.y;
-		// vec4 rect = start_and_end_pixels / screen_size.xyxy;
-		// vec2 hv = step(rect.xy, tex_coord) * step(tex_coord, rect.zw);
-		// float onOff = hv.x * hv.y;
+		// Disable liquid refraction where the minimap is
+		vec2 tc = tex_coord;
+		tc.y = 1.0 - tc.y;
+		vec4 rect = vec4(uLocationTracker_minimap_position.xy - vec2(5.0), uLocationTracker_minimap_position.xy + 11.0 * uLocationTracker_sizes.zw) / uLocationTracker_sizes.xyxy;
+		vec2 hv = step(rect.xy, tc) * step(tc, rect.zw);
+		float onOff = hv.x * hv.y;
+		liquid_distortion_offset *= 1.0 - onOff;
 
 		tex_coord = tex_coord + liquid_distortion_offset;
 		tex_coord_y_inverted += vec2( liquid_distortion_offset.x, -liquid_distortion_offset.y );
@@ -1173,13 +1174,12 @@ void main()
 	draw_color = uLocationTracker_9_9.rgb;
 	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
-	pos = vec2(5.3, 5.3);
+	pos = vec2(5.3, 5.3);	
 	pos *= uLocationTracker_sizes.zw;
-	pos += uLocationTracker_minimap_position.xy + vec2(100.0, 100.0) * (1.0 - uLocationTracker_alpha.x); // Dirty hack because i'm lazy :)
-	start_and_end_pixels = vec4(pos, pos + 1.0);
+	pos += uLocationTracker_minimap_position.xy;
+	start_and_end_pixels = vec4(pos, pos + 0.33 * uLocationTracker_sizes.zw);
 	draw_color = vec3(1.0, 0.0, 0.0);
 	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
-
 
 }
 // ============================================================================================================
