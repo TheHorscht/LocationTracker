@@ -4,14 +4,18 @@ local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers
 ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
 ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
 
-local map_width = 3
-local map_height = 3
-local biome_map_offset_y = 1
+local map_width = 70
+local map_height = 48
+local biome_map_offset_y = 14
 local seen_areas
+local screen_width, screen_height = 427, 242
 
 function OnWorldPreUpdate()
 	dofile("mods/LocationTracker/files/gui.lua")
 end
+
+GameSetPostFxParameter("uLocationTracker_sizes", screen_width, screen_height, 3, 3)
+GameSetPostFxParameter("uLocationTracker_minimap_position", screen_width - 90, 20, 0, 0)
 
 local function get_chunk_coords(x, y)
 	return math.floor(x / 512), math.floor(y / 512)
@@ -66,18 +70,25 @@ function OnWorldPostUpdate()
 		if map then
 			local output = { r = 0, g = 0, b = 0 }
 			local cx, cy = GameGetCameraPos()
+			local dirs = {{-1,-1},{0,-1},{1,-1},{-1,0},{0,0},{1,0},{-1,1},{0,1},{1,1}}
 			local chunk_x, chunk_y = get_chunk_coords(cx, cy)
-			if not seen_areas[encode_coords(chunk_x, chunk_y)] then
-				seen_areas[encode_coords(chunk_x, chunk_y)] = true
-				local out = ""
-				for k, v in pairs(seen_areas) do
-					out = out .. k
-					if next(seen_areas,k) then
-						out = out .. ","
+			for i, dir in ipairs(dirs) do
+				-- Do a lookahead and if we hit something in our current chunk, continue
+				local lookat_x, lookat_y = cx + 400 * dir[1], cy + 400 * dir[2]
+				local did_hit, hit_x, hit_y = RaytraceSurfaces(cx, cy, lookat_x, lookat_y)
+				local hit_chunk_x, hit_chunk_y = get_chunk_coords(hit_x or lookat_x, hit_y or lookat_y)
+				if not seen_areas[encode_coords(hit_chunk_x, hit_chunk_y)] then
+					seen_areas[encode_coords(hit_chunk_x, hit_chunk_y)] = true
+					local out = ""
+					for k, v in pairs(seen_areas) do
+						out = out .. k
+						if next(seen_areas,k) then
+							out = out .. ","
+						end
 					end
+					print(out)
+					GlobalsSetValue("LocationTracker_seen_areas", out)
 				end
-				print(out)
-				GlobalsSetValue("LocationTracker_seen_areas", out)
 			end
 
 			for y=0,9 do

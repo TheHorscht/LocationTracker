@@ -1,6 +1,7 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
 
-BiomeMapSetSize(3, 3)
+local w, h = 70, 48
+BiomeMapSetSize(w, h)
 BiomeMapLoadImage(0,0, "data/biome_impl/biome_map.png")
 
 local function _BiomeMapGetPixel(x, y)
@@ -13,8 +14,8 @@ end
 
 local content = "return {"
 
-for y=0,3-1 do
-  for x=0,3-1 do
+for y=0,h-1 do
+  for x=0,w-1 do
     local r, g, b = _BiomeMapGetPixel(x, y)
     content = content .. "[\""..encode_coords(x, y).."\"] = " .. string.format("{ r = %s, g = %s, b = %s },", r, g, b)
   end

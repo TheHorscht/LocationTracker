@@ -157,6 +157,9 @@ uniform vec4 uLocationTracker_9_7;
 uniform vec4 uLocationTracker_9_8;
 uniform vec4 uLocationTracker_9_9;
 uniform vec4 uLocationTracker_player_pos;
+uniform	vec4 uLocationTracker_sizes;
+uniform	vec4 uLocationTracker_minimap_position;
+
 
 // -----------------------------------------------------------------------------------------------
 // utilities
@@ -235,12 +238,12 @@ vec3 render(vec2 uv) {
 vec3 draw_rect(vec4 start_and_end_pixels, vec3 draw_color, vec3 color, vec2 screen_size, vec2 tex_coord) {
 	// Flip the coordinates so we start off in the top left corner
 	tex_coord.y = 1.0 - tex_coord.y;
-	vec4 rect = vec4(start_and_end_pixels.xy / screen_size, start_and_end_pixels.zw / screen_size);
+	// vec4 rect = vec4(start_and_end_pixels.xy / screen_size, start_and_end_pixels.zw / screen_size);
+	vec4 rect = start_and_end_pixels / screen_size.xyxy;
 	vec2 hv = step(rect.xy, tex_coord) * step(tex_coord, rect.zw);
 	float onOff = hv.x * hv.y;
 
 	return mix(color, draw_color, onOff);
-	// return mix(color, draw_color, s);
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -317,6 +320,12 @@ void main()
 		// distort the texture coordinate if the pixel we would sample is liquid
 		vec4 extra_data_at_liquid_offset = texture2D( tex_glow_unfiltered, tex_coord_glow + vec2( liquid_distortion_offset.x, -liquid_distortion_offset.y ) );
 		liquid_distortion_offset *= step( SHADING_LIQUID_BITS_ALPHA, extra_data_at_liquid_offset.a );
+
+
+		// tex_coord.y = 1.0 - tex_coord.y;
+		// vec4 rect = start_and_end_pixels / screen_size.xyxy;
+		// vec2 hv = step(rect.xy, tex_coord) * step(tex_coord, rect.zw);
+		// float onOff = hv.x * hv.y;
 
 		tex_coord = tex_coord + liquid_distortion_offset;
 		tex_coord_y_inverted += vec2( liquid_distortion_offset.x, -liquid_distortion_offset.y );
@@ -628,218 +637,214 @@ void main()
 // ============================================
 // LocationTracker "minimap"
 {
-	vec2 screen_size = vec2(427.0, 242.0);
-	vec2 chunk_size = vec2(3.0) * uLocationTracker_alpha.x;
-	// vec2 offset = vec2(screen_size.x - 108.0, 20.0);
-	vec2 offset = vec2(screen_size.x - 90.0, 20.0);
 
 	vec2 pos = vec2(0.0, 0.0);
-	vec4 start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	vec4 start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	vec3 draw_color = uLocationTracker_0_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 0.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_0.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
 	pos = vec2(0.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 1.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_1.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
 	pos = vec2(0.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 2.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_2.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
 
 
 	pos = vec2(0.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 3.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_3.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
@@ -848,54 +853,54 @@ void main()
 
 
 	pos = vec2(0.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 4.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_4.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
@@ -903,161 +908,161 @@ void main()
 
 
 	pos = vec2(0.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 5.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_5.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
 
 
 	pos = vec2(0.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 6.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_6.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
 
 	pos = vec2(0.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 7.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_7.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
@@ -1065,115 +1070,115 @@ void main()
 
 
 	pos = vec2(0.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 8.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_8.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 
 
 
 	pos = vec2(0.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_0_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(1.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_1_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(2.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_2_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(3.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_3_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(4.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_4_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_5_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(6.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_6_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(7.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_7_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(8.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_8_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(9.0, 9.0);
-	start_and_end_pixels = vec4(offset + pos * chunk_size, offset + (pos + 1.0) * chunk_size);
+	start_and_end_pixels = vec4(uLocationTracker_minimap_position.xy + pos * uLocationTracker_sizes.zw, uLocationTracker_minimap_position.xy + (pos + 1.0) * uLocationTracker_sizes.zw);
 	draw_color = uLocationTracker_9_9.rgb;
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 	pos = vec2(5.3, 5.3);
-	pos *= chunk_size;
-	pos += offset + vec2(100.0, 100.0) * (1.0 - uLocationTracker_alpha.x); // Dirty hack because i'm lazy :)
+	pos *= uLocationTracker_sizes.zw;
+	pos += uLocationTracker_minimap_position.xy + vec2(100.0, 100.0) * (1.0 - uLocationTracker_alpha.x); // Dirty hack because i'm lazy :)
 	start_and_end_pixels = vec4(pos, pos + 1.0);
 	draw_color = vec3(1.0, 0.0, 0.0);
-	color = draw_rect(start_and_end_pixels, draw_color, color, screen_size, tex_coord);
+	color = draw_rect(start_and_end_pixels, draw_color, color, uLocationTracker_sizes.xy, tex_coord);
 
 
 }
