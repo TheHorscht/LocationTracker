@@ -1,5 +1,5 @@
 <Mod
-	name="Location tracker"
+	name="Location tracker (Minimap)"
 	description="Adds a very rough minimap to the top right that shows the area around you and tracks where you have been."
 	tags="quality of life"
 	dont_upload_folders="node_modules|dist|gimp|fmod"
