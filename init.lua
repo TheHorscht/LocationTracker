@@ -7,7 +7,7 @@ local seen_areas
 local screen_width, screen_height = 427, 242 -- Maybe read it from MagicNumbers:VIRTUAL_RESOLUTION_X and Y instead
 local map
 
-
+dofile_once("mods/LocationTracker/files/inject_shader.lua")
 
 ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
 if ModIsEnabled("VolcanoBiome") or ModIsEnabled("New Biomes + Secrets") then
@@ -64,12 +64,14 @@ function OnWorldPostUpdate()
 			seen_areas = {}
 			local areas = split_string(stored, ",")
 			for i, area in ipairs(areas) do
-				print(area)
 				local xy = split_string(area, "_")
 				seen_areas[encode_coords(xy[1], xy[2])] = true
 			end
 		end
-		GameAddFlagRun("locationtracker_reload_map")
+		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
+		map_width = data.width
+		map_height = data.height
+		map = data.map
 		GameSetPostFxParameter("uLocationTracker_sizes", screen_width, screen_height, 3, 3)
 		GameSetPostFxParameter("uLocationTracker_minimap_position", screen_width - 90, 20, 0, 0)
 	end
