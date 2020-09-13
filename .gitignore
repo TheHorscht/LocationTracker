@@ -1,0 +1,5 @@
+fmod/.*
+node_modules
+*.zip
+dist
+compatibility.xml
