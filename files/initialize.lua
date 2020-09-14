@@ -8,7 +8,7 @@ for y=0,10 do
       offset_y=-y,
       smooth_filtering=false,
       ui_is_parent=true,
-      alpha=0.8,
+      alpha=1,
     })
   end
 end

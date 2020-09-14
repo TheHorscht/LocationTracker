@@ -1,4 +1,5 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
+dofile_once("mods/LocationTracker/files/show_or_hide.lua")
 
 local map_width = 70
 local map_height = 48
@@ -72,7 +73,7 @@ function OnWorldPostUpdate()
 		map_height = data.height
 		map = data.map
 	end
-	if GameGetFrameNum() % 20 == 0 then
+	if GameGetFrameNum() % 30 == 0 then
 		if map then
 			local output = { r = 0, g = 0, b = 0 }
 			local cx, cy = GameGetCameraPos()
@@ -96,20 +97,22 @@ function OnWorldPostUpdate()
 				end
 			end
 
-			local location_tracker = EntityGetWithName("location_tracker")
-			local sprite_components = EntityGetComponent(location_tracker, "SpriteComponent")
-			if sprite_components then
-				for y=0,10 do
-					for x=0,10 do
-						local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
-						local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
-						local chunk = map[encode_coords(biome_x, biome_y)]
-						local bla = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff))
-						local seen = seen_areas[encode_coords(chunk_x, chunk_y)]
-						if not HasFlagPersistent("locationtracker_fog_of_war_disabled") and not seen then
-							bla = "anim_0"
+			if not HasFlagPersistent("locationtracker_hide_map") then
+				local location_tracker = EntityGetWithName("location_tracker")
+				local sprite_components = EntityGetComponent(location_tracker, "SpriteComponent")
+				if sprite_components then
+					for y=0,10 do
+						for x=0,10 do
+							local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
+							local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
+							local chunk = map[encode_coords(biome_x, biome_y)]
+							local bla = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff))
+							local seen = seen_areas[encode_coords(chunk_x, chunk_y)]
+							if not HasFlagPersistent("locationtracker_fog_of_war_disabled") and not seen then
+								bla = "anim_0"
+							end
+							ComponentSetValue2(sprite_components[(x+1)+(y*11)], "rect_animation", bla)
 						end
-						ComponentSetValue2(sprite_components[(x+1)+(y*11)], "rect_animation", bla)
 					end
 				end
 			end
@@ -206,10 +209,9 @@ function OnPlayerSpawned(player)
 	if not GameHasFlagRun("locationtracker_minimap_added") then
 		GameAddFlagRun("locationtracker_minimap_added")
 		local minimap = EntityLoad("mods/LocationTracker/files/minimap.xml", 1007, 60)
-		-- local you_are_here = EntityLoad("mods/LocationTracker/files/you_are_here.xml", 1034, 78) -- with 5
-		-- local you_are_here = EntityLoad("mods/LocationTracker/files/you_are_here.xml", 1045, 89) -- with 3
-		local you_are_here = EntityLoad("mods/LocationTracker/files/you_are_here.xml", 1051, 104)
+		local you_are_here = EntityLoad("mods/LocationTracker/files/you_are_here.xml", 1040, 93)
 		EntityAddChild(GameGetWorldStateEntity(), minimap)
 		EntityAddChild(GameGetWorldStateEntity(), you_are_here)
 	end
+	set_minimap_visible(not HasFlagPersistent("locationtracker_hide_map"))
 end

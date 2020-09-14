@@ -1,8 +1,8 @@
-<Entity>
+<Entity name="location_tracker_you_are_here">
 
   <_Transform 
-    scale.x="2" 
-    scale.y="2">
+    scale.x="3" 
+    scale.y="3">
   </_Transform>
 
   <SpriteComponent

@@ -1,3 +1,5 @@
+dofile_once("mods/LocationTracker/files/show_or_hide.lua")
+
 gui = gui or GuiCreate()
 
 local id = 0
@@ -12,8 +14,10 @@ local open_or_close = HasFlagPersistent("locationtracker_hide_map") and "+" or "
 if GuiButton(gui, 2, 0, "["..open_or_close.."]", create_id()) then
   if HasFlagPersistent("locationtracker_hide_map") then
     RemoveFlagPersistent("locationtracker_hide_map")
+    set_minimap_visible(true)
   else
     AddFlagPersistent("locationtracker_hide_map")
+    set_minimap_visible(false)
   end
 end
 if not HasFlagPersistent("locationtracker_hide_map") then
