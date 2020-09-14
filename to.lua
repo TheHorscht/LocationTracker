@@ -1,0 +1,5 @@
+local entity_id = GetUpdatedEntityID()
+local x, y = EntityGetTransform(entity_id)
+local sprite_component = EntityGetFirstComponentIncludingDisabled(entity_id, "SpriteComponent")
+SetRandomSeed(GameGetFrameNum(), GameGetFrameNum())
+ComponentSetValue2(sprite_component, "rect_animation", Random(0,40) .. "_" .. Random(0,40))

@@ -1,0 +1,14 @@
+<Entity name="location_tracker">
+
+  <_Transform 
+      scale.x="10" 
+      scale.y="10">
+  </_Transform>
+  <LuaComponent
+    script_source_file="mods/LocationTracker/initialize.lua"
+    execute_on_added="1"
+    remove_after_executed="1"
+    >
+  </LuaComponent>
+
+</Entity>
