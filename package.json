@@ -1,0 +1,24 @@
+{
+  "name": "locationtracker",
+  "version": "0.2.0",
+  "description": "",
+  "main": "build.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheHorscht/LocationTracker.git"
+  },
+  "author": "TheHorscht <realhorscht+github@gmail.com> (https://github.com/TheHorscht)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TheHorscht/LocationTracker/issues"
+  },
+  "homepage": "https://github.com/TheHorscht/LocationTracker#readme",
+  "dependencies": {
+    "adm-zip": "^0.4.16",
+    "minimatch": "^3.0.4",
+    "xml2js": "^0.4.23"
+  }
+}

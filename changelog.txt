@@ -1,0 +1,6 @@
+v0.2.0:
+- Improved performance by reworking the way the map is drawn
+- Increased map size by 1 block, is 11x11 now instead of 10x10
+
+v0.1.0:
+- First release
