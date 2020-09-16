@@ -1,8 +1,8 @@
 <Entity name="location_tracker">
 
   <_Transform 
-    scale.x="9" 
-    scale.y="9">
+    scale.x="4" 
+    scale.y="4">
   </_Transform>
 
   <LuaComponent

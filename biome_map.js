@@ -1,7 +1,3 @@
-// const colors = [
-//   0xFF00FF,
-//   0xFF0000,
-// ];
 const colors = [
   0x632b4b,
   0x6d3656,
@@ -219,25 +215,24 @@ const png = new PNG({
 for (let y = 0; y < height; y++) {
   for (let x = 0; x < width; x++) {
     let col = Color(colors[x + width * y], "rgb");
-    for (let v = 0; v < variations; v++) {
-      for (let yy = 0; yy < sub_y; yy++) {
-        for (let xx = 0; xx < sub_x; xx++) {
-          const vx = v % 4;
-          const vy = Math.floor(v / 4);
-          const xxx = (x*4 + vx) * 2;
-          const yyy = (y*8 + vy*2);
-          const idx = (png.width * (yyy + yy) + (xxx + xx)) << 2;
-
-          if(((vx + vy*4) >> (xx+yy*2) & 1) == 0) {
-            png.data[idx  ] = col.red();
-            png.data[idx+1] = col.green();
-            png.data[idx+2] = col.blue();
-          } else {
-            png.data[idx  ] = 0;
-            png.data[idx+1] = 0;
-            png.data[idx+2] = 0;
+    for (let vy = 0; vy < sub_y * sub_y; vy++) {
+      for (let vx = 0; vx < sub_x * sub_x; vx++) {
+        for (let yy = 0; yy < sub_y; yy++) {
+          for (let xx = 0; xx < sub_x; xx++) {
+            const xxx = (x*4 + vx) * 2;
+            const yyy = (y*4 + vy) * 2;
+            const idx = (png.width * (yyy + yy) + (xxx + xx)) << 2;
+            if(((vx + vy*4) >> (xx+yy*2) & 1) == 0) {
+              png.data[idx  ] = col.red();
+              png.data[idx+1] = col.green();
+              png.data[idx+2] = col.blue();
+            } else {
+              png.data[idx  ] = 0;
+              png.data[idx+1] = 0;
+              png.data[idx+2] = 0;
+            }
+            png.data[idx+3] = 255;
           }
-          png.data[idx+3] = 255;
         }
       }
     }

@@ -8,10 +8,14 @@ local seen_areas
 local map
 
 ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
+if ModIsEnabled("New Biomes + Secrets") then
+	ModLuaFileAppend("data/scripts/biomes/biome_map_armory_biomes.lua", "mods/LocationTracker/files/biome_map_append.lua")
+end
+if ModIsEnabled("VolcanoBiome") then
+	ModLuaFileAppend("mods/VolcanoBiome/files/scripts/map_loader.lua", "mods/LocationTracker/files/biome_map_append.lua")
+end
 if ModIsEnabled("VolcanoBiome") or ModIsEnabled("New Biomes + Secrets") then
 	biome_map_offset_y = 54
-	ModLuaFileAppend("mods/VolcanoBiome/files/scripts/map_loader.lua", "mods/LocationTracker/files/biome_map_append.lua")
-	ModLuaFileAppend("data/scripts/biomes/biome_map_armory_biomes.lua", "mods/LocationTracker/files/biome_map_append.lua")
 else
 	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
 	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
@@ -106,7 +110,8 @@ function OnWorldPostUpdate()
 							local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
 							local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
 							local chunk = map[encode_coords(biome_x, biome_y)]
-							local bla = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff))
+							local bla = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_3"
+							-- local bla = "anim_5304023_0"
 							local seen = seen_areas[encode_coords(chunk_x, chunk_y)]
 							if not HasFlagPersistent("locationtracker_fog_of_war_disabled") and not seen then
 								bla = "anim_0"
@@ -170,34 +175,29 @@ function OnMagicNumbersAndWorldSeedInitialized()
 	default_animation="anim_0">
 	<RectAnimation
 		name="anim_0"
-		pos_x="25"
-		pos_y="25"
-		frame_count="1"
-		frame_width="1"
-		frame_height="1"
-		frame_wait="0.1"
-		frames_per_row="1"
-		loop="0">
-	</RectAnimation>
+		pos_x="198"
+		pos_y="198"
+		frame_width="2"
+		frame_height="2" />
 ]]
 
 	for y=0,25-1 do
 		for x=0,25-1 do
 			local color = colors[x + y*25 + 1]
 			if color then
-				content = content .. [[
-	<RectAnimation
-		name="anim_]]..tostring(color)..[["
-		pos_x="]]..(x*3+1)..[["
-		pos_y="]]..(y*3+1)..[["
-		frame_count="1"
-		frame_width="1"
-		frame_height="1"
-		frame_wait="0.1"
-		frames_per_row="1"
-		loop="0">
-	</RectAnimation>
-	]]
+				for vy=0,3 do
+					for vx=0,3 do
+						local v = vx + vy * 4
+						content = content .. [[
+						<RectAnimation
+							name="anim_]]..tostring(color).."_"..tostring(v)..[["
+							pos_x="]]..(x*8+vx*4)..[["
+							pos_y="]]..(y*8+vy*4)..[["
+							frame_width="2"
+							frame_height="2"/>
+						]]
+					end
+				end
 			end
 		end
 	end
