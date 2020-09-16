@@ -1,8 +1,8 @@
 <Mod
-	name="Location tracker (Minimap)"
+	name="LocationTracker (Minimap)"
 	description="Adds a very rough minimap to the top right that shows the area around you and tracks where you have been."
 	tags="quality of life"
-	dont_upload_folders="node_modules|dist|gimp|fmod"
-	dont_upload_files="LICENSE|README.md|TODO.md|package-lock.json|package.json|Modworkshop Readme.txt|steam description.txt|modworkshop_preview_image.png"
+	dont_upload_folders="node_modules|dist|gimp|fmod|.vscode"
+	dont_upload_files="LICENSE|README.md|TODO.md|package-lock.json|package.json|Modworkshop Readme.txt|steam description.txt|modworkshop_preview_image.png|biome_map.js|build.js"
 > 
 </Mod>

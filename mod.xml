@@ -1,5 +1,5 @@
 <Mod
-	name="Location tracker (Minimap)"
+	name="LocationTracker (Minimap)"
 	description="Adds a very rough minimap that shows the area around you and tracks where you have been."
 	request_no_api_restrictions="0"	
 >

@@ -1,3 +1,7 @@
+v0.3.0:
+- Divided each area into 2x2 subpixels for more accurate tracking!
+- Removed the lookahead which would reveal areas the player can see. Defeats the purpose of a tracker when it reveals something you haven't actually been to.
+
 v0.2.0:
 - Improved performance by reworking the way the map is drawn
 - Increased map size by 1 block, is 11x11 now instead of 10x10

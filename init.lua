@@ -53,6 +53,17 @@ local function get_biome_map_coords(map_width, map_height, x, y, offset_x, offse
 	return biome_x, biome_y
 end
 
+local function get_position()
+	local x, y
+	local players = EntityGetWithTag("player_unit")
+	if #players > 0 then
+		x, y = EntityGetTransform(players[1])
+	else
+		x, y = GameGetCameraPos()
+	end
+	return x, y
+end
+
 function OnWorldPostUpdate()
 	if not seen_areas then
 		-- Initializing
@@ -83,7 +94,7 @@ function OnWorldPostUpdate()
 	if GameGetFrameNum() % 20 == 0 then
 		if map then
 			local output = { r = 0, g = 0, b = 0 }
-			local cx, cy = GameGetCameraPos()
+			local cx, cy = get_position()
 			local chunk_x, chunk_y = get_chunk_coords(cx, cy)
 			local sub_x = cx - chunk_x * 512 
 			local sub_y = cy - chunk_y * 512
