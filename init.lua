@@ -3,9 +3,12 @@ dofile_once("mods/LocationTracker/files/show_or_hide.lua")
 
 local map_width = 70
 local map_height = 48
+local minimap_pos_x = 1007
+local minimap_pos_y = 60
 local biome_map_offset_y = 14
 local seen_areas
 local map
+local center = 5 * 8 + 1
 
 ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
 if ModIsEnabled("New Biomes + Secrets") then
@@ -59,8 +62,8 @@ function OnWorldPostUpdate()
 			seen_areas = {}
 			local areas = split_string(stored, ",")
 			for i, area in ipairs(areas) do
-				local xy = split_string(area, "_")
-				seen_areas[encode_coords(xy[1], xy[2])] = true
+				local xyv = split_string(area, "_")
+				seen_areas[encode_coords(xyv[1], xyv[2])] = xyv[3]
 			end
 		end
 		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
@@ -77,28 +80,33 @@ function OnWorldPostUpdate()
 		map_height = data.height
 		map = data.map
 	end
-	if GameGetFrameNum() % 30 == 0 then
+	if GameGetFrameNum() % 20 == 0 then
 		if map then
 			local output = { r = 0, g = 0, b = 0 }
 			local cx, cy = GameGetCameraPos()
-			local dirs = {{-1,-1},{0,-1},{1,-1},{-1,0},{0,0},{1,0},{-1,1},{0,1},{1,1}}
 			local chunk_x, chunk_y = get_chunk_coords(cx, cy)
-			for i, dir in ipairs(dirs) do
-				-- Do a lookahead and if we hit something in our current chunk, continue
-				local lookat_x, lookat_y = cx + 400 * dir[1], cy + 400 * dir[2]
-				local did_hit, hit_x, hit_y = RaytraceSurfaces(cx, cy, lookat_x, lookat_y)
-				local hit_chunk_x, hit_chunk_y = get_chunk_coords(hit_x or lookat_x, hit_y or lookat_y)
-				if not seen_areas[encode_coords(hit_chunk_x, hit_chunk_y)] then
-					seen_areas[encode_coords(hit_chunk_x, hit_chunk_y)] = true
-					local out = ""
-					for k, v in pairs(seen_areas) do
-						out = out .. k
-						if next(seen_areas,k) then
-							out = out .. ","
-						end
+			local sub_x = cx - chunk_x * 512 
+			local sub_y = cy - chunk_y * 512
+			sub_x = math.floor(sub_x / 256) + 1
+			sub_y = math.floor(sub_y / 256) + 1
+			
+			local you_are_here = EntityGetWithName("location_tracker_you_are_here")
+			EntitySetTransform(you_are_here, minimap_pos_x + center + (sub_x - 1) * 4, minimap_pos_y + center + (sub_y - 1) * 4)
+
+			local current_sub_value = sub_x * (sub_y * sub_y)
+			local chunk_coords = encode_coords(chunk_x, chunk_y)
+			local current_chunk_bitmask = seen_areas[chunk_coords] or 0
+			local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
+			if current_chunk_bitmask ~= new_value then
+				seen_areas[chunk_coords] = new_value
+				local out = ""
+				for k, v in pairs(seen_areas) do
+					out = out .. k .. "_" .. v
+					if next(seen_areas,k) then
+						out = out .. ","
 					end
-					GlobalsSetValue("LocationTracker_seen_areas", out)
 				end
+				GlobalsSetValue("LocationTracker_seen_areas", out)
 			end
 
 			if not HasFlagPersistent("locationtracker_hide_map") then
@@ -110,13 +118,13 @@ function OnWorldPostUpdate()
 							local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
 							local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
 							local chunk = map[encode_coords(biome_x, biome_y)]
-							local bla = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_3"
-							-- local bla = "anim_5304023_0"
-							local seen = seen_areas[encode_coords(chunk_x, chunk_y)]
-							if not HasFlagPersistent("locationtracker_fog_of_war_disabled") and not seen then
-								bla = "anim_0"
+							local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+							chunk_bitmask = tostring(15 - chunk_bitmask)
+							if not HasFlagPersistent("locationtracker_fog_of_war_disabled") then
+								chunk_bitmask = 0
 							end
-							ComponentSetValue2(sprite_components[(x+1)+(y*11)], "rect_animation", bla)
+							local rect = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask
+							ComponentSetValue2(sprite_components[(x+1)+(y*11)], "rect_animation", rect)
 						end
 					end
 				end
@@ -191,8 +199,8 @@ function OnMagicNumbersAndWorldSeedInitialized()
 						content = content .. [[
 						<RectAnimation
 							name="anim_]]..tostring(color).."_"..tostring(v)..[["
-							pos_x="]]..(x*8+vx*4)..[["
-							pos_y="]]..(y*8+vy*4)..[["
+							pos_x="]]..(x*8+vx*2)..[["
+							pos_y="]]..(y*8+vy*2)..[["
 							frame_width="2"
 							frame_height="2"/>
 						]]
@@ -206,12 +214,9 @@ function OnMagicNumbersAndWorldSeedInitialized()
 end
 
 function OnPlayerSpawned(player)
-	if not GameHasFlagRun("locationtracker_minimap_added") then
-		GameAddFlagRun("locationtracker_minimap_added")
-		local minimap = EntityLoad("mods/LocationTracker/files/minimap.xml", 1007, 60)
-		local you_are_here = EntityLoad("mods/LocationTracker/files/you_are_here.xml", 1040, 93)
-		EntityAddChild(GameGetWorldStateEntity(), minimap)
-		EntityAddChild(GameGetWorldStateEntity(), you_are_here)
+	if EntityGetWithName("location_tracker") == 0 then
+		EntityLoad("mods/LocationTracker/files/minimap.xml", minimap_pos_x, minimap_pos_y)
+		EntityLoad("mods/LocationTracker/files/you_are_here.xml", minimap_pos_x + center, minimap_pos_y + center)
+		set_minimap_visible(not HasFlagPersistent("locationtracker_hide_map"))
 	end
-	set_minimap_visible(not HasFlagPersistent("locationtracker_hide_map"))
 end

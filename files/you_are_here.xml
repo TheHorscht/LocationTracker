@@ -1,14 +1,14 @@
-<Entity name="location_tracker_you_are_here">
+<Entity name="location_tracker_you_are_here" serialize="0">
 
   <_Transform 
-    scale.x="3" 
-    scale.y="3">
+    scale.x="2" 
+    scale.y="2">
   </_Transform>
 
   <SpriteComponent
     image_file="mods/LocationTracker/files/you_are_here.png"
-    offset_x="-5"
-    offset_y="-5"
+    offset_x="0"
+    offset_y="0"
     smooth_filtering="0"
     ui_is_parent="1"
     z_index="-999"

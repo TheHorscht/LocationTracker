@@ -1,4 +1,4 @@
-<Entity name="location_tracker">
+<Entity name="location_tracker" serialize="0">
 
   <_Transform 
     scale.x="4" 
