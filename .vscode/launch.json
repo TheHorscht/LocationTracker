@@ -11,7 +11,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}\\biome_map.js"
+      "program": "${workspaceFolder}\\gen.js"
     }
   ]
 }

@@ -24,8 +24,10 @@ if not HasFlagPersistent("locationtracker_hide_map") then
   if GuiButton(gui, 2, 0, "[FOW]", create_id()) then
     if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
       RemoveFlagPersistent("locationtracker_fog_of_war_disabled")
+      GamePrint("Fog of war enabled")
     else
       AddFlagPersistent("locationtracker_fog_of_war_disabled")
+      GamePrint("Fog of war disabled")
     end
   end
 end

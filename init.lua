@@ -3,12 +3,13 @@ dofile_once("mods/LocationTracker/files/show_or_hide.lua")
 
 local map_width = 70
 local map_height = 48
-local minimap_pos_x = 1007
-local minimap_pos_y = 60
+local minimap_pos_x = 1007 - 23
+local minimap_pos_y = 65
 local biome_map_offset_y = 14
 local seen_areas
 local map
-local center = 5 * 8 + 1
+local zoom = 4
+local center = 5 * (zoom*3) + 1 
 
 ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
 if ModIsEnabled("New Biomes + Secrets") then
@@ -91,25 +92,26 @@ function OnWorldPostUpdate()
 		map_height = data.height
 		map = data.map
 	end
-	if GameGetFrameNum() % 20 == 0 then
+	if GameGetFrameNum() % 10 == 0 then
 		if map then
 			local output = { r = 0, g = 0, b = 0 }
 			local cx, cy = get_position()
 			local chunk_x, chunk_y = get_chunk_coords(cx, cy)
 			local sub_x = cx - chunk_x * 512 
 			local sub_y = cy - chunk_y * 512
-			sub_x = math.floor(sub_x / 256) + 1
-			sub_y = math.floor(sub_y / 256) + 1
+			sub_x = math.floor(sub_x / (512/3))
+			sub_y = math.floor(sub_y / (512/3))
 			
 			local you_are_here = EntityGetWithName("location_tracker_you_are_here")
-			EntitySetTransform(you_are_here, minimap_pos_x + center + (sub_x - 1) * 4, minimap_pos_y + center + (sub_y - 1) * 4)
+			EntitySetTransform(you_are_here, minimap_pos_x + center + (sub_x-1) * zoom - 2, minimap_pos_y + center + (sub_y-1) * zoom - 2)
 
-			local current_sub_value = sub_x * (sub_y * sub_y)
+			local current_sub_value = bit.lshift(1, sub_x + sub_y * 3)
 			local chunk_coords = encode_coords(chunk_x, chunk_y)
 			local current_chunk_bitmask = seen_areas[chunk_coords] or 0
 			local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
 			if current_chunk_bitmask ~= new_value then
 				seen_areas[chunk_coords] = new_value
+				print("Setting new seen mask: " .. new_value)
 				local out = ""
 				for k, v in pairs(seen_areas) do
 					out = out .. k .. "_" .. v
@@ -122,20 +124,40 @@ function OnWorldPostUpdate()
 
 			if not HasFlagPersistent("locationtracker_hide_map") then
 				local location_tracker = EntityGetWithName("location_tracker")
-				local sprite_components = EntityGetComponent(location_tracker, "SpriteComponent")
-				if sprite_components then
+				local children = EntityGetAllChildren(location_tracker)
+				if children then
 					for y=0,10 do
 						for x=0,10 do
+							local child = children[(x+1)+(y*11)]
+							local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
 							local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
 							local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
 							local chunk = map[encode_coords(biome_x, biome_y)]
 							local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
-							chunk_bitmask = tostring(15 - chunk_bitmask)
-							if not HasFlagPersistent("locationtracker_fog_of_war_disabled") then
+							local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
+							local rot, scale_x, scale_y = 0, 1, 1
+							if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
 								chunk_bitmask = 0
+							else
+								if not permutation_data.indexes[511 - chunk_bitmask] then
+									local data = permutation_data[511 - chunk_bitmask]
+									chunk_bitmask = data.from
+									chunk_bitmask = permutation_data.indexes[chunk_bitmask]
+									local flips = data.op[1]
+									local rotations = data.op[2]
+									if flips == 1 then
+										scale_x = -1
+									end
+									for i=1,rotations do
+										rot = rot + math.rad(90)
+									end
+								else
+									chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
+								end
 							end
+							EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), rot, scale_x * zoom, scale_y * zoom)
 							local rect = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask
-							ComponentSetValue2(sprite_components[(x+1)+(y*11)], "rect_animation", rect)
+							ComponentSetValue2(sprite_component, "rect_animation", rect)
 						end
 					end
 				end
@@ -194,27 +216,29 @@ function OnMagicNumbersAndWorldSeedInitialized()
 	default_animation="anim_0">
 	<RectAnimation
 		name="anim_0"
-		pos_x="198"
-		pos_y="198"
-		frame_width="2"
-		frame_height="2" />
+		pos_x="456"
+		pos_y="546"
+		frame_width="3"
+		frame_height="3" />
 ]]
 
-	for y=0,25-1 do
-		for x=0,25-1 do
-			local color = colors[x + y*25 + 1]
+	for y=0,15-1 do
+		for x=0,20-1 do
+			local color = colors[x + y*20 + 1]
 			if color then
-				for vy=0,3 do
-					for vx=0,3 do
-						local v = vx + vy * 4
-						content = content .. [[
-						<RectAnimation
-							name="anim_]]..tostring(color).."_"..tostring(v)..[["
-							pos_x="]]..(x*8+vx*2)..[["
-							pos_y="]]..(y*8+vy*2)..[["
-							frame_width="2"
-							frame_height="2"/>
-						]]
+				for vy=0,12 do
+					for vx=0,7 do
+						local v = vx + vy * 8
+						if v <= 101 then
+							content = content .. [[
+							<RectAnimation
+								name="anim_]]..tostring(color).."_"..tostring(v)..[["
+								pos_x="]]..(x*8*3+vx*3)..[["
+								pos_y="]]..(y*13*3+vy*3)..[["
+								frame_width="3"
+								frame_height="3"/>
+							]]
+						end
 					end
 				end
 			end
