@@ -1,3 +1,7 @@
+v0.4.0:
+- Increased subpixel count to 3x3.
+- Added a border.
+
 v0.3.0:
 - Divided each area into 2x2 subpixels for more accurate tracking!
 - Removed the lookahead which would reveal areas the player can see. Defeats the purpose of a tracker when it reveals something you haven't actually been to.
