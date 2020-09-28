@@ -1,12 +1,11 @@
 function set_minimap_visible(visible)
   local location_tracker = EntityGetWithName("location_tracker")
-  local sprite_components = EntityGetComponent(location_tracker, "SpriteComponent")
-  if sprite_components then
-    for y=0,10 do
-      for x=0,10 do
-        ComponentSetValue2(sprite_components[(x+1)+(y*11)], "visible", visible)
-      end
-    end
+  local border_sprite = EntityGetFirstComponentIncludingDisabled(location_tracker, "SpriteComponent")
+  ComponentSetValue2(border_sprite, "visible", visible)
+  local children = EntityGetAllChildren(location_tracker) or {}
+  for i, child in ipairs(children) do
+    local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+    ComponentSetValue2(sprite_component, "visible", visible)
   end
   local you_are_here = EntityGetWithName("location_tracker_you_are_here")
   local sprite_component = EntityGetFirstComponent(you_are_here, "SpriteComponent")

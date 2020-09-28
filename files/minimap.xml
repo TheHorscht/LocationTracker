@@ -1,5 +1,14 @@
 <Entity name="location_tracker" serialize="0">
 
+  <SpriteComponent
+    image_file="mods/LocationTracker/files/border.png"
+    offset_x="8"
+    offset_y="8"
+    smooth_filtering="0"
+    ui_is_parent="1"
+    >
+  </SpriteComponent>
+
   <LuaComponent
     script_source_file="mods/LocationTracker/files/initialize.lua"
     execute_on_added="1"

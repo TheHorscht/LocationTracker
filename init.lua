@@ -3,13 +3,13 @@ dofile_once("mods/LocationTracker/files/show_or_hide.lua")
 
 local map_width = 70
 local map_height = 48
-local minimap_pos_x = 1007 - 23
-local minimap_pos_y = 65
+local minimap_pos_x = 1007 + 0.5
+local minimap_pos_y = 65 + 0.5
 local biome_map_offset_y = 14
 local seen_areas
 local map
-local zoom = 4
-local center = 5 * (zoom*3) + 1 
+local zoom = 3
+local center = 5 * 3 * zoom
 
 ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
 if ModIsEnabled("New Biomes + Secrets") then
@@ -103,7 +103,7 @@ function OnWorldPostUpdate()
 			sub_y = math.floor(sub_y / (512/3))
 			
 			local you_are_here = EntityGetWithName("location_tracker_you_are_here")
-			EntitySetTransform(you_are_here, minimap_pos_x + center + (sub_x-1) * zoom - 2, minimap_pos_y + center + (sub_y-1) * zoom - 2)
+			EntitySetTransform(you_are_here, minimap_pos_x + center - 1.5 + (sub_x - 1) * zoom, minimap_pos_y + center - 1.5 + (sub_y - 1) * zoom)
 
 			local current_sub_value = bit.lshift(1, sub_x + sub_y * 3)
 			local chunk_coords = encode_coords(chunk_x, chunk_y)
@@ -111,7 +111,6 @@ function OnWorldPostUpdate()
 			local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
 			if current_chunk_bitmask ~= new_value then
 				seen_areas[chunk_coords] = new_value
-				print("Setting new seen mask: " .. new_value)
 				local out = ""
 				for k, v in pairs(seen_areas) do
 					out = out .. k .. "_" .. v
