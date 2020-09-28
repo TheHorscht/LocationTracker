@@ -7,6 +7,7 @@ local minimap_pos_x = 1007 + 0.5
 local minimap_pos_y = 65 + 0.5
 local biome_map_offset_y = 14
 local seen_areas
+local last_map_position = "0_0"
 local map
 local zoom = 3
 local center = 5 * 3 * zoom
@@ -92,73 +93,75 @@ function OnWorldPostUpdate()
 		map_height = data.height
 		map = data.map
 	end
-	if GameGetFrameNum() % 10 == 0 then
-		if map then
-			local output = { r = 0, g = 0, b = 0 }
-			local cx, cy = get_position()
-			local chunk_x, chunk_y = get_chunk_coords(cx, cy)
-			local sub_x = cx - chunk_x * 512 
-			local sub_y = cy - chunk_y * 512
-			sub_x = math.floor(sub_x / (512/3))
-			sub_y = math.floor(sub_y / (512/3))
-			
-			local you_are_here = EntityGetWithName("location_tracker_you_are_here")
-			EntitySetTransform(you_are_here, minimap_pos_x + center - 1.5 + (sub_x - 1) * zoom, minimap_pos_y + center - 1.5 + (sub_y - 1) * zoom)
 
-			local current_sub_value = bit.lshift(1, sub_x + sub_y * 3)
-			local chunk_coords = encode_coords(chunk_x, chunk_y)
-			local current_chunk_bitmask = seen_areas[chunk_coords] or 0
-			local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
-			if current_chunk_bitmask ~= new_value then
-				seen_areas[chunk_coords] = new_value
-				local out = ""
-				for k, v in pairs(seen_areas) do
-					out = out .. k .. "_" .. v
-					if next(seen_areas,k) then
-						out = out .. ","
-					end
-				end
-				GlobalsSetValue("LocationTracker_seen_areas", out)
+	local cx, cy = get_position()
+	local chunk_x, chunk_y = get_chunk_coords(cx, cy)
+	local new_map_position = chunk_x .. "_" .. chunk_y
+	-- Don't start tracking until after 20 frames have passed so it doesn't track the transition when the player spawns somewhere else and zooms into place
+	if GameGetFrameNum() > 20 and new_map_position ~= last_map_position then
+		last_map_position = new_map_position
+		GlobalsSetValue("LocationTracker_needs_update", "1")
+	end
+	local sub_x = cx - chunk_x * 512 
+	local sub_y = cy - chunk_y * 512
+	sub_x = math.floor(sub_x / (512/3))
+	sub_y = math.floor(sub_y / (512/3))
+	local you_are_here = EntityGetWithName("location_tracker_you_are_here")
+	EntitySetTransform(you_are_here, minimap_pos_x + center - 1.5 + (sub_x - 1) * zoom, minimap_pos_y + center - 1.5 + (sub_y - 1) * zoom)
+	local current_sub_value = bit.lshift(1, sub_x + sub_y * 3)
+	local chunk_coords = encode_coords(chunk_x, chunk_y)
+	local current_chunk_bitmask = seen_areas[chunk_coords] or 0
+	local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
+	if GameGetFrameNum() > 20 and current_chunk_bitmask ~= new_value then
+		GlobalsSetValue("LocationTracker_needs_update", "1")
+		seen_areas[chunk_coords] = new_value
+		local out = ""
+		for k, v in pairs(seen_areas) do
+			out = out .. k .. "_" .. v
+			if next(seen_areas,k) then
+				out = out .. ","
 			end
+		end
+		GlobalsSetValue("LocationTracker_seen_areas", out)
+	end
 
-			if not HasFlagPersistent("locationtracker_hide_map") then
-				local location_tracker = EntityGetWithName("location_tracker")
-				local children = EntityGetAllChildren(location_tracker)
-				if children then
-					for y=0,10 do
-						for x=0,10 do
-							local child = children[(x+1)+(y*11)]
-							local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
-							local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
-							local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
-							local chunk = map[encode_coords(biome_x, biome_y)]
-							local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
-							local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
-							local rot, scale_x, scale_y = 0, 1, 1
-							if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
-								chunk_bitmask = 0
-							else
-								if not permutation_data.indexes[511 - chunk_bitmask] then
-									local data = permutation_data[511 - chunk_bitmask]
-									chunk_bitmask = data.from
-									chunk_bitmask = permutation_data.indexes[chunk_bitmask]
-									local flips = data.op[1]
-									local rotations = data.op[2]
-									if flips == 1 then
-										scale_x = -1
-									end
-									for i=1,rotations do
-										rot = rot + math.rad(90)
-									end
-								else
-									chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
-								end
+	if map and not HasFlagPersistent("locationtracker_hide_map") and GlobalsGetValue("LocationTracker_needs_update", "0") == "1" then
+		GlobalsSetValue("LocationTracker_needs_update", "0")
+		local location_tracker = EntityGetWithName("location_tracker")
+		local children = EntityGetAllChildren(location_tracker)
+		if children then
+			for y=0,10 do
+				for x=0,10 do
+					local child = children[(x+1)+(y*11)]
+					local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
+					local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
+					local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
+					local chunk = map[encode_coords(biome_x, biome_y)]
+					local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+					local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
+					local rot, scale_x, scale_y = 0, 1, 1
+					if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
+						chunk_bitmask = 0
+					else
+						if not permutation_data.indexes[511 - chunk_bitmask] then
+							local data = permutation_data[511 - chunk_bitmask]
+							chunk_bitmask = data.from
+							chunk_bitmask = permutation_data.indexes[chunk_bitmask]
+							local flips = data.op[1]
+							local rotations = data.op[2]
+							if flips == 1 then
+								scale_x = -1
 							end
-							EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), rot, scale_x * zoom, scale_y * zoom)
-							local rect = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask
-							ComponentSetValue2(sprite_component, "rect_animation", rect)
+							for i=1,rotations do
+								rot = rot + math.rad(90)
+							end
+						else
+							chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
 						end
 					end
+					EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), rot, scale_x * zoom, scale_y * zoom)
+					local rect = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask
+					ComponentSetValue2(sprite_component, "rect_animation", rect)
 				end
 			end
 		end

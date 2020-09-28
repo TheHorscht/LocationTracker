@@ -22,6 +22,7 @@ if GuiButton(gui, 2, 0, "["..open_or_close.."]", create_id()) then
 end
 if not HasFlagPersistent("locationtracker_hide_map") then
   if GuiButton(gui, 2, 0, "[FOW]", create_id()) then
+    GlobalsSetValue("LocationTracker_needs_update", "1")
     if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
       RemoveFlagPersistent("locationtracker_fog_of_war_disabled")
     else

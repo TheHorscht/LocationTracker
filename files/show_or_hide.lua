@@ -10,4 +10,5 @@ function set_minimap_visible(visible)
   local you_are_here = EntityGetWithName("location_tracker_you_are_here")
   local sprite_component = EntityGetFirstComponent(you_are_here, "SpriteComponent")
   ComponentSetValue2(sprite_component, "visible", visible)
+  GlobalsSetValue("LocationTracker_needs_update", "1")
 end
