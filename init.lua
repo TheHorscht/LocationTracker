@@ -8,6 +8,7 @@ local minimap_pos_y = 65 + 0.5
 local biome_map_offset_y = 14
 local seen_areas
 local last_map_position = "0_0"
+local dirty_areas = {}
 local map
 local zoom = 3
 local center = 5 * 3 * zoom
@@ -66,6 +67,24 @@ local function get_position()
 	return x, y
 end
 
+local function set_area_dirty(start_x, start_y, end_x, end_y)
+	local dirty_string = ""
+	for y=1, 11 do
+		for x=1, 11 do
+			if x >= start_x and x <= end_x and y >= start_y and y <= end_y then
+				dirty_areas[x .. "_" .. y] = true
+			end
+		end
+	end
+end
+
+local function has_dirty_areas()
+	for k, v in pairs(dirty_areas) do
+		return true
+	end
+	return false
+end
+
 function OnWorldPostUpdate()
 	if not seen_areas then
 		-- Initializing
@@ -100,7 +119,7 @@ function OnWorldPostUpdate()
 	-- Don't start tracking until after 20 frames have passed so it doesn't track the transition when the player spawns somewhere else and zooms into place
 	if GameGetFrameNum() > 20 and new_map_position ~= last_map_position then
 		last_map_position = new_map_position
-		GlobalsSetValue("LocationTracker_needs_update", "1")
+		set_area_dirty(1, 1, 11, 11)
 	end
 	local sub_x = cx - chunk_x * 512 
 	local sub_y = cy - chunk_y * 512
@@ -113,7 +132,7 @@ function OnWorldPostUpdate()
 	local current_chunk_bitmask = seen_areas[chunk_coords] or 0
 	local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
 	if GameGetFrameNum() > 20 and current_chunk_bitmask ~= new_value then
-		GlobalsSetValue("LocationTracker_needs_update", "1")
+		set_area_dirty(6, 6, 6, 6)
 		seen_areas[chunk_coords] = new_value
 		local out = ""
 		for k, v in pairs(seen_areas) do
@@ -125,13 +144,23 @@ function OnWorldPostUpdate()
 		GlobalsSetValue("LocationTracker_seen_areas", out)
 	end
 
-	if map and not HasFlagPersistent("locationtracker_hide_map") and GlobalsGetValue("LocationTracker_needs_update", "0") == "1" then
-		GlobalsSetValue("LocationTracker_needs_update", "0")
+	if GlobalsGetValue("LocationTracker_force_update", "0") == "1" then
+		GlobalsSetValue("LocationTracker_force_update", "0")
+		set_area_dirty(1, 1, 11, 11)
+	end
+
+	if map and not HasFlagPersistent("locationtracker_hide_map") and has_dirty_areas() then
 		local location_tracker = EntityGetWithName("location_tracker")
 		local children = EntityGetAllChildren(location_tracker)
 		if children then
-			for y=0,10 do
-				for x=0,10 do
+			(function()
+				local boop = 0
+				for coords,_ in pairs(dirty_areas) do
+					boop = boop + 1
+					if boop > 11 then return end
+					dirty_areas[coords] = nil
+					local xy = split_string(coords, "_")
+					local x, y = xy[1]-1, xy[2]-1
 					local child = children[(x+1)+(y*11)]
 					local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
 					local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
@@ -163,7 +192,7 @@ function OnWorldPostUpdate()
 					local rect = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask
 					ComponentSetValue2(sprite_component, "rect_animation", rect)
 				end
-			end
+			end)()
 		end
 	end
 end
