@@ -243,6 +243,7 @@ function OnMagicNumbersAndWorldSeedInitialized()
 		0x24888a,  0x18a0d6,  0x0da899,  0x42244d,  0x99cb4c,  0x99cb4d,  0x99cb4e,  0x99cb4f,
 		0x99cb5a,  0x1133F3,  0x89a04b,  0xbaa345,  0x57cace,  0x57dace,
 
+		0x3f55d1, 0x2e99d1, 0x9d99d1,
 	}
 	local content = [[<Sprite
 	filename="mods/LocationTracker/files/biome_colors.png"

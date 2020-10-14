@@ -210,6 +210,10 @@ const colors = [
   0xbaa345,
   0x57cace,
   0x57dace,
+
+  0x3f55d1,
+  0x2e99d1,
+  0x9d99d1,
 ]
 
 const fs = require('fs');
