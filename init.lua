@@ -9,6 +9,7 @@ local biome_map_offset_y = 14
 local seen_areas
 local last_map_position = "0_0"
 local dirty_areas = {}
+local map_colors_last_update = {}
 local map
 local zoom = 3
 local center = 5 * 3 * zoom
@@ -36,7 +37,9 @@ local function get_chunk_coords(x, y)
 	return math.floor(x / 512), math.floor(y / 512)
 end
 
--- offset_ is in chunks
+-- Given x, y world position and a chunk offset, returns the wrapped biome map chunk
+-- for instance at a biome map width of 10 at 512 pixels width per chunk, the entire map would be 5120 pixels wide,
+-- if x == 4096+1, biome_x would be 8, with offset_x == 3, it would wrap around to 1
 local function get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
 	offset_x = offset_x or 0
 	offset_y = offset_y or 0
@@ -116,11 +119,26 @@ function OnWorldPostUpdate()
 	local cx, cy = get_position()
 	local chunk_x, chunk_y = get_chunk_coords(cx, cy)
 	local new_map_position = chunk_x .. "_" .. chunk_y
+
 	-- Don't start tracking until after 20 frames have passed so it doesn't track the transition when the player spawns somewhere else and zooms into place
 	if GameGetFrameNum() > 20 and new_map_position ~= last_map_position then
 		last_map_position = new_map_position
+		for y=1,11 do
+			for x=1,11 do
+				local color_data = get_color_data(cx, cy, x-6, y-6)
+				local last_update = map_colors_last_update[encode_coords(x, y)] or { is_fully_black = false, anim = "", scale_x = 1, rot = 0 }
+				if not (last_update.is_fully_black and color_data.is_fully_black) and (last_update.anim ~= color_data.anim or last_update.scale_x ~= color_data.scale_x or last_update.rot ~= color_data.rot) then
+					dirty_areas[encode_coords(x, y)] = true
+				end
+				map_colors_last_update[encode_coords(x, y)] = color_data
+			end
+		end
+	end
+	if GlobalsGetValue("LocationTracker_force_update", "0") == "1" then
+		GlobalsSetValue("LocationTracker_force_update", "0")
 		set_area_dirty(1, 1, 11, 11)
 	end
+
 	local sub_x = cx - chunk_x * 512 
 	local sub_y = cy - chunk_y * 512
 	sub_x = math.floor(sub_x / (512/3))
@@ -144,11 +162,6 @@ function OnWorldPostUpdate()
 		GlobalsSetValue("LocationTracker_seen_areas", out)
 	end
 
-	if GlobalsGetValue("LocationTracker_force_update", "0") == "1" then
-		GlobalsSetValue("LocationTracker_force_update", "0")
-		set_area_dirty(1, 1, 11, 11)
-	end
-
 	if map and not HasFlagPersistent("locationtracker_hide_map") and has_dirty_areas() then
 		local location_tracker = EntityGetWithName("location_tracker")
 		local children = EntityGetAllChildren(location_tracker)
@@ -158,39 +171,14 @@ function OnWorldPostUpdate()
 				for coords,_ in pairs(dirty_areas) do
 					boop = boop + 1
 					if boop > 11 then return end
-					dirty_areas[coords] = nil
 					local xy = split_string(coords, "_")
 					local x, y = xy[1]-1, xy[2]-1
 					local child = children[(x+1)+(y*11)]
 					local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
-					local biome_x, biome_y = get_biome_map_coords(map_width, map_height, cx, cy, x-5, y-5)
-					local chunk_x, chunk_y = get_chunk_coords(cx + (512 * (x-5)), cy + (512 * (y-5)))
-					local chunk = map[encode_coords(biome_x, biome_y)]
-					local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
-					local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
-					local rot, scale_x, scale_y = 0, 1, 1
-					if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
-						chunk_bitmask = 0
-					else
-						if not permutation_data.indexes[511 - chunk_bitmask] then
-							local data = permutation_data[511 - chunk_bitmask]
-							chunk_bitmask = data.from
-							chunk_bitmask = permutation_data.indexes[chunk_bitmask]
-							local flips = data.op[1]
-							local rotations = data.op[2]
-							if flips == 1 then
-								scale_x = -1
-							end
-							for i=1,rotations do
-								rot = rot + math.rad(90)
-							end
-						else
-							chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
-						end
-					end
-					EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), rot, scale_x * zoom, scale_y * zoom)
-					local rect = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask
-					ComponentSetValue2(sprite_component, "rect_animation", rect)
+					local color_data = get_color_data(cx, cy, x-5, y-5)
+					dirty_areas[coords] = nil
+					EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), color_data.rot, color_data.scale_x * zoom, zoom)
+					ComponentSetValue2(sprite_component, "rect_animation", color_data.anim)
 				end
 			end)()
 		end
@@ -290,4 +278,38 @@ function OnPlayerSpawned(player)
 		EntityLoad("mods/LocationTracker/files/you_are_here.xml", minimap_pos_x + center, minimap_pos_y + center)
 		set_minimap_visible(not HasFlagPersistent("locationtracker_hide_map"))
 	end
+end
+
+function get_color_data(x, y, offset_x, offset_y)
+	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
+	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
+	local chunk = map[encode_coords(biome_x, biome_y)]
+	local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+	local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
+	local rot, scale_x, scale_y = 0, 1, 1
+	if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
+		chunk_bitmask = 0
+	else
+		if not permutation_data.indexes[511 - chunk_bitmask] then
+			local data = permutation_data[511 - chunk_bitmask]
+			chunk_bitmask = data.from
+			chunk_bitmask = permutation_data.indexes[chunk_bitmask]
+			local flips = data.op[1]
+			local rotations = data.op[2]
+			if flips == 1 then
+				scale_x = -1
+			end
+			for i=1,rotations do
+				rot = rot + math.rad(90)
+			end
+		else
+			chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
+		end
+	end
+	return {
+		anim = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask,
+		scale_x = scale_x,
+		rot = rot,
+		is_fully_black = chunk_bitmask == 101
+	}
 end
