@@ -3,7 +3,7 @@ dofile_once("mods/LocationTracker/files/show_or_hide.lua")
 
 local map_width = 70
 local map_height = 48
-local minimap_pos_x = 1007 + 0.5
+local minimap_pos_x = 1009 + 0.5
 local minimap_pos_y = 65 + 0.5
 local biome_map_offset_y = 14
 local seen_areas
