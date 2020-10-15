@@ -18,10 +18,13 @@ ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTra
 if ModIsEnabled("New Biomes + Secrets") then
 	ModLuaFileAppend("data/scripts/biomes/biome_map_armory_biomes.lua", "mods/LocationTracker/files/biome_map_append.lua")
 end
+if ModIsEnabled("commonifier") then
+	ModLuaFileAppend("data/scripts/biomes/biome_map_armory.lua", "mods/LocationTracker/files/biome_map_append.lua")
+end
 if ModIsEnabled("VolcanoBiome") then
 	ModLuaFileAppend("mods/VolcanoBiome/files/scripts/map_loader.lua", "mods/LocationTracker/files/biome_map_append.lua")
 end
-if ModIsEnabled("VolcanoBiome") or ModIsEnabled("New Biomes + Secrets") then
+if ModIsEnabled("VolcanoBiome") or ModIsEnabled("New Biomes + Secrets") or ModIsEnabled("commonifier") then
 	biome_map_offset_y = 54
 else
 	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"

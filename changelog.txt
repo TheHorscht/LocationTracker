@@ -1,6 +1,7 @@
 UNRELEASED:
 - Improved performance (hopefully) by only updating changed areas and when more than 11 areas need updating at once, splits the updates over multiple frames to reduce lag spikes at the cost of a little flickering.
 - Added new biome colors for 1.0.
+- Added compatibility with commonifier mod.
 
 v0.4.0:
 - Increased subpixel count to 3x3.
