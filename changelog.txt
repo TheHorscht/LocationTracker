@@ -1,3 +1,6 @@
+v0.5.2:
+- Minimap now gets hidden when game is paused.
+
 v0.5.1:
 - FIX: Added 2 more biomes for Noita 1.0.
 

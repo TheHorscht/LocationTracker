@@ -316,3 +316,7 @@ function get_color_data(x, y, offset_x, offset_y)
 		is_fully_black = chunk_bitmask == 101
 	}
 end
+
+function OnPausedChanged(is_paused, is_inventory_pause)
+	set_minimap_visible(not (is_paused or is_inventory_pause or HasFlagPersistent("locationtracker_hide_map")))
+end
