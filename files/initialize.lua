@@ -6,7 +6,7 @@ for y=0,10 do
     local child = EntityCreateNew()
     EntityAddChild(entity_id, child)
     EntityAddComponent2(child, "SpriteComponent", {
-      image_file="mods/LocationTracker/_virtual/biome_map.xml",
+      image_file="mods/LocationTracker/files/color_sprites.xml",
       offset_x=1.5,
       offset_y=1.5,
       smooth_filtering=false,
