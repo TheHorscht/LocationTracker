@@ -46,6 +46,8 @@ for i, mod_id in ipairs(ModGetActiveModIDs()) do
 	end
 end
 
+ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
+
 if not biome_script_found then
 	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
 	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])

@@ -1,3 +1,6 @@
+v0.5.5:
+- FIX: Make compatible with NG+ again
+
 v0.5.4:
 - Add automatic compatibility with mods that change the biome map. (Dependent on mod authors not using weird syntax...)
 
