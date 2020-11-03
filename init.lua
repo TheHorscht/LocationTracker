@@ -1,5 +1,6 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
 dofile_once("mods/LocationTracker/files/show_or_hide.lua")
+local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
 
 local map_width = 70
 local map_height = 48
@@ -14,22 +15,47 @@ local map
 local zoom = 3
 local center = 5 * 3 * zoom
 
-ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
-if ModIsEnabled("New Biomes + Secrets") then
-	ModLuaFileAppend("data/scripts/biomes/biome_map_armory_biomes.lua", "mods/LocationTracker/files/biome_map_append.lua")
+local biome_script_found = false
+for i, mod_id in ipairs(ModGetActiveModIDs()) do
+	local init_content = ModTextFileGetContent("mods/" .. mod_id .. "/init.lua")
+	if init_content then
+		-- Get the magic numbers file path if present
+		local magic_numbers_file_path
+		local lines = init_content:gmatch("([^\r\n]+)")
+		for line in lines do
+			-- Make sure to only get it if it's not commented out
+			local match_start, match_end, capture = line:find("ModMagicNumbersFileAdd%s*%(%s*[\"\']%s*([^%)]*)%s*[\"\']%s*%)")
+			if match_start then
+				if not (line:sub(1, match_start-1):find("%-%-")) then
+					magic_numbers_file_path = capture
+				end
+			end
+		end
+		-- Try to get the BIOME_MAP path
+		local biome_map_script_path
+		if magic_numbers_file_path then
+			local magic_numbers_content = ModTextFileGetContent(magic_numbers_file_path)
+			local xml = nxml.parse(magic_numbers_content)
+			biome_map_script_path = xml.attr.BIOME_MAP
+		end
+
+		if biome_map_script_path then
+			biome_script_found = true
+			ModLuaFileAppend(biome_map_script_path, "mods/LocationTracker/files/biome_map_append.lua")
+		end
+	end
 end
-if ModIsEnabled("commonifier") then
-	ModLuaFileAppend("data/scripts/biomes/biome_map_armory.lua", "mods/LocationTracker/files/biome_map_append.lua")
-end
-if ModIsEnabled("VolcanoBiome") then
-	ModLuaFileAppend("mods/VolcanoBiome/files/scripts/map_loader.lua", "mods/LocationTracker/files/biome_map_append.lua")
-end
-if ModIsEnabled("VolcanoBiome") or ModIsEnabled("New Biomes + Secrets") or ModIsEnabled("commonifier") then
-	biome_map_offset_y = 54
-else
+
+if not biome_script_found then
 	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
 	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
 	ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
+end
+
+local biomes_all_content = ModTextFileGetContent("data/biome/_biomes_all.xml")
+if biomes_all_content then
+	local xml = nxml.parse(biomes_all_content)
+	biome_map_offset_y = xml.attr.biome_offset_y
 end
 
 function OnWorldPreUpdate()

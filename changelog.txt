@@ -1,3 +1,6 @@
+v0.5.4:
+- Add automatic compatibility with mods that change the biome map. (Dependent on mod authors not using weird syntax...)
+
 v0.5.3:
 - Game should load much faster now due to a file being shipped pre-generated instead of generating it on the fly on startup everytime.
 
