@@ -35,8 +35,10 @@ for i, mod_id in ipairs(ModGetActiveModIDs()) do
 		local biome_map_script_path
 		if magic_numbers_file_path then
 			local magic_numbers_content = ModTextFileGetContent(magic_numbers_file_path)
-			local xml = nxml.parse(magic_numbers_content)
-			biome_map_script_path = xml.attr.BIOME_MAP
+			if magic_numbers_content then
+				local xml = nxml.parse(magic_numbers_content)
+				biome_map_script_path = xml.attr.BIOME_MAP
+			end
 		end
 
 		if biome_map_script_path then

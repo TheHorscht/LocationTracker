@@ -1,3 +1,6 @@
+v0.5.6:
+- FIX: Fails to load when using it together with mods that try to ModMagicNumbersFileAdd a non existent file.
+
 v0.5.5:
 - FIX: Make compatible with NG+ again
 
