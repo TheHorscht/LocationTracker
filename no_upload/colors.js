@@ -1,6 +1,4 @@
-const fs = require('fs');
-
-const colors = [
+module.exports = [
   0x632b4b, 0x6d3656,	0x78375c,	0x712f55,	0x873665,
   0xd13b3b,	0xa62b2b,	0xc03535,	0x36d517,	0x21A6AD,
   0x489fa4,	0x3d3e40,	0x2DC010,	0x33e311,	0x48E311,
@@ -45,43 +43,8 @@ const colors = [
   0x24888a,  0x18a0d6,  0x0da899,  0x42244d,  0x99cb4c,  0x99cb4d,  0x99cb4e,  0x99cb4f,
   0x99cb5a,  0x1133F3,  0x89a04b,  0xbaa345,  0x57cace,  0x57dace,
 
-  0x3f55d1, 0x2e99d1, 0x9d99d1, 0x18d6d6, 0x9e4302
+  0x3f55d1, 0x2e99d1, 0x9d99d1, 0x18d6d6, 0x9e4302,
+
+  /* Tanksys biomes */
+  0x751515, 0x9f1254, 0xa01356
 ]
-
-let content = `<Sprite
-	filename="mods/LocationTracker/files/biome_colors.png"
-	offset_x="0"
-	offset_y="0" 
-	default_animation="anim_0">
-	<RectAnimation
-		name="anim_0"
-		pos_x="456"
-		pos_y="546"
-		frame_width="3"
-		frame_height="3" />
-`;
-
-for(let y=0; y < 15; y++) {
-  for(let x=0; x < 20; x++) {
-    let color = colors[x + y*20]
-    if(color) {
-      for(let vy=0; vy <= 12; vy++) {
-        for(let vx=0; vx <= 7; vx++) {
-          let v = vx + vy * 8
-          if(v <= 101) {
-            content += `
-  <RectAnimation
-    name="anim_${color}_${v}"
-    pos_x="${x*8*3+vx*3}"
-    pos_y="${y*13*3+vy*3}"
-    frame_width="3"
-    frame_height="3"/>`
-          }
-        }
-      }
-    }
-  }   
-}
-
-content += '</Sprite>'
-fs.writeFile('files/color_sprites.xml', content, () => {});
