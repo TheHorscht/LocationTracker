@@ -1,3 +1,6 @@
+v0.5.7:
+- Added a new and better way for other mods to add their biome colors themselves.
+
 v0.5.6:
 - FIX: Fails to load when using it together with mods that try to ModMagicNumbersFileAdd a non existent file.
 - Add new noitavania custom biomes
