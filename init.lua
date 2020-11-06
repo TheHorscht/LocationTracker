@@ -14,6 +14,7 @@ local map_colors_last_update = {}
 local map
 local zoom = 3
 local center = 5 * 3 * zoom
+local mod_colors = {}
 
 local biome_script_found = false
 for i, mod_id in ipairs(ModGetActiveModIDs()) do
@@ -60,10 +61,6 @@ local biomes_all_content = ModTextFileGetContent("data/biome/_biomes_all.xml")
 if biomes_all_content then
 	local xml = nxml.parse(biomes_all_content)
 	biome_map_offset_y = xml.attr.biome_offset_y
-end
-
-function OnWorldPreUpdate()
-	dofile("mods/LocationTracker/files/gui.lua")
 end
 
 local function get_chunk_coords(x, y)
@@ -121,7 +118,8 @@ local function has_dirty_areas()
 	return false
 end
 
-function OnWorldPostUpdate()
+function OnWorldPreUpdate()
+	dofile("mods/LocationTracker/files/gui.lua")
 	if not seen_areas then
 		-- Initializing
 		seen_areas = {}
@@ -211,10 +209,23 @@ function OnWorldPostUpdate()
 					local color_data = get_color_data(cx, cy, x-5, y-5)
 					dirty_areas[coords] = nil
 					EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), color_data.rot, color_data.scale_x * zoom, zoom)
+					-- Only refresh if the file needs changing
+					local image_file = ComponentGetValue2(sprite_component, "image_file")
+					if image_file ~= color_data.sprite_file then
+						ComponentSetValue2(sprite_component, "image_file", color_data.image_file)
+						EntityRefreshSprite(child, sprite_component)
+					end
 					ComponentSetValue2(sprite_component, "rect_animation", color_data.anim)
 				end
 			end)()
 		end
+	end
+end
+
+function OnModPostInit()
+	local content = ModTextFileGetContent("mods/LocationTracker/_virtual/mod_colors.lua")
+	if content then
+		mod_colors = dofile("mods/LocationTracker/_virtual/mod_colors.lua")
 	end
 end
 
@@ -252,8 +263,14 @@ function get_color_data(x, y, offset_x, offset_y)
 			chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
 		end
 	end
+	local color = math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)
+	local image_file = "mods/LocationTracker/files/color_sprites.xml"
+	if mod_colors[color] then
+		image_file = mod_colors[color]--.image_file
+	end
 	return {
-		anim = "anim_" .. tostring(math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)) .. "_" .. chunk_bitmask,
+		image_file = image_file,
+		anim = "anim_" .. tostring(color) .. "_" .. chunk_bitmask,
 		scale_x = scale_x,
 		rot = rot,
 		is_fully_black = chunk_bitmask == 101
