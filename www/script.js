@@ -51,7 +51,7 @@ Then in your init.lua, place the following code:`;
   codeElement.innerText = `if ModIsEnabled("LocationTracker") then
   local location_tracker = dofile_once("mods/LocationTracker/files/intermod_compat.lua")
   location_tracker.add_colors({
-    ${colors.map(color => '0x' + color.toString(16)).join(', ')}
+    ${colors.map(color => '0x' + color.toString(16).padStart(6, '0')).join(', ')}
   }, "${rootPath}/LocationTracker_spritesheet.xml")
 end`;
   document.querySelectorAll('pre code').forEach((block) => {
