@@ -1,3 +1,6 @@
+v0.5.8:
+- FIX: Showing wrong map when other mods came after in load order
+
 v0.5.7:
 - Added a new and better way for other mods to add their biome colors themselves.
 

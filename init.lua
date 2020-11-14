@@ -16,7 +16,7 @@ local zoom = 3
 local center = 5 * 3 * zoom
 local mod_colors = {}
 
-local biome_script_found = false
+local biome_map_script_paths = {}
 for i, mod_id in ipairs(ModGetActiveModIDs()) do
 	local init_content = ModTextFileGetContent("mods/" .. mod_id .. "/init.lua")
 	if init_content then
@@ -43,18 +43,24 @@ for i, mod_id in ipairs(ModGetActiveModIDs()) do
 		end
 
 		if biome_map_script_path then
-			biome_script_found = true
-			ModLuaFileAppend(biome_map_script_path, "mods/LocationTracker/files/biome_map_append.lua")
+			table.insert(biome_map_script_paths, biome_map_script_path)
 		end
 	end
 end
 
-ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
-
-if not biome_script_found then
+if #biome_map_script_paths == 0 then
 	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
 	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
 	ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
+end
+
+-- Append to the already registered map script as late as possible when all other mods have added their appends already
+-- this append needs to be the absolute last.
+function OnMagicNumbersAndWorldSeedInitialized()
+	ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
+	for i, script_path in ipairs(biome_map_script_paths) do
+		ModLuaFileAppend(script_path, "mods/LocationTracker/files/biome_map_append.lua")
+	end
 end
 
 local biomes_all_content = ModTextFileGetContent("data/biome/_biomes_all.xml")

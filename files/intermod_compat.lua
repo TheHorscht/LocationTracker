@@ -15,7 +15,6 @@ return {
       content_to_add = content_to_add .. "  [" .. tostring(color) .. string.format([[] = "%s",]] .. "\n", sprite_sheet)
     end
     content = content:gsub("\n}", "\n" .. content_to_add .. "}")
-    print(content)
     ModTextFileSetContent(virtual_file_path, content)
   end
 }
