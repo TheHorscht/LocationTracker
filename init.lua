@@ -279,7 +279,8 @@ function get_color_data(x, y, offset_x, offset_y)
 		anim = "anim_" .. tostring(color) .. "_" .. chunk_bitmask,
 		scale_x = scale_x,
 		rot = rot,
-		is_fully_black = chunk_bitmask == 101
+		is_fully_black = chunk_bitmask == 101,
+		color = { r = chunk.r / 255, g = chunk.g / 255, b = chunk.b / 255 },
 	}
 end
 
