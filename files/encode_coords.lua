@@ -1,16 +1,9 @@
-function split_string(inputstr, sep)
-  sep = sep or "%s"
-  local t= {}
-  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-    table.insert(t, str)
-  end
-  return t
-end
-
 function encode_coords(x, y)
-  return x .. "_" .. y
+  return x + y * 0x10000
 end
 
 function decode_coords(encoded)
-  return split_string(encoded, "_")
+  local x = bit.band(encoded, 0xFFFF)
+  local y = bit.band(bit.rshift(encoded, 16), 0xFFFF)
+  return x, y
 end

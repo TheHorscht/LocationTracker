@@ -1,20 +1,38 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
-dofile_once("mods/LocationTracker/files/show_or_hide.lua")
+dofile_once("data/scripts/lib/utilities.lua")
+local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
 local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
+
+function split_string(inputstr, sep)
+  sep = sep or "%s"
+  local t= {}
+  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    table.insert(t, str)
+  end
+  return t
+end
 
 local map_width = 70
 local map_height = 48
-local minimap_pos_x = 1009 + 0.5
-local minimap_pos_y = 65 + 0.5
+-- local minimap_pos_x = 1009-- + 0.5
+-- local minimap_pos_y = 65-- + 0.5
+local minimap_pos_x = 490-- + 0.5
+local minimap_pos_y = 65-- + 0.5
 local biome_map_offset_y = 14
 local seen_areas
-local last_map_position = "0_0"
-local dirty_areas = {}
-local map_colors_last_update = {}
+local last_chunk_x, last_chunk_y = 0, 0
 local map
-local zoom = 3
-local center = 5 * 3 * zoom
-local mod_colors = {}
+local zoom = 1.5
+local sprite_scale = 3
+local color_data = {}
+local size = { x = 11, y = 11 }
+local block_size = { x = 3, y = 3 }
+local total_size = { x = size.x * block_size.x * zoom, y = size.y * block_size.y * zoom }
+local screen_width, screen_height = nil, nil
+
+local locked = true
+local visible = true
+local fog_of_war = false
 
 local biome_map_script_paths = {}
 for i, mod_id in ipairs(ModGetActiveModIDs()) do
@@ -106,26 +124,14 @@ local function get_position()
 	return x, y
 end
 
-local function set_area_dirty(start_x, start_y, end_x, end_y)
-	local dirty_string = ""
-	for y=1, 11 do
-		for x=1, 11 do
-			if x >= start_x and x <= end_x and y >= start_y and y <= end_y then
-				dirty_areas[x .. "_" .. y] = true
-			end
-		end
-	end
-end
-
-local function has_dirty_areas()
-	for k, v in pairs(dirty_areas) do
-		return true
-	end
-	return false
-end
-
 function OnWorldPreUpdate()
-	dofile("mods/LocationTracker/files/gui.lua")
+	-- dofile("mods/LocationTracker/files/gui.lua")
+	gui = gui or GuiCreate()
+	GuiStartFrame(gui)
+	-- GuiOptionsAdd(gui, GUI_OPTION.NoPositionTween)
+	if screen_width == nil then
+		screen_width, screen_height = GuiGetScreenDimensions(gui)
+	end
 	if not seen_areas then
 		-- Initializing
 		seen_areas = {}
@@ -153,45 +159,24 @@ function OnWorldPreUpdate()
 		map = data.map
 	end
 
+	if GameGetFrameNum() < 20 then return end
+
 	local cx, cy = get_position()
 	local chunk_x, chunk_y = get_chunk_coords(cx, cy)
-	local new_map_position = chunk_x .. "_" .. chunk_y
-
-	-- Don't start tracking until after 20 frames have passed so it doesn't track the transition when the player spawns somewhere else and zooms into place
-	if GameGetFrameNum() > 20 and new_map_position ~= last_map_position then
-		last_map_position = new_map_position
-		for y=1,11 do
-			for x=1,11 do
-				local color_data = get_color_data(cx, cy, x-6, y-6)
-				local last_update = map_colors_last_update[encode_coords(x, y)] or { is_fully_black = false, anim = "", scale_x = 1, rot = 0 }
-				if not (last_update.is_fully_black and color_data.is_fully_black) and (last_update.anim ~= color_data.anim or last_update.scale_x ~= color_data.scale_x or last_update.rot ~= color_data.rot) then
-					dirty_areas[encode_coords(x, y)] = true
-				end
-				map_colors_last_update[encode_coords(x, y)] = color_data
-			end
-		end
-	end
-	if GlobalsGetValue("LocationTracker_force_update", "0") == "1" then
-		GlobalsSetValue("LocationTracker_force_update", "0")
-		set_area_dirty(1, 1, 11, 11)
-	end
-
 	local sub_x = cx - chunk_x * 512 
 	local sub_y = cy - chunk_y * 512
-	sub_x = math.floor(sub_x / (512/3))
-	sub_y = math.floor(sub_y / (512/3))
-	local you_are_here = EntityGetWithName("location_tracker_you_are_here")
-	EntitySetTransform(you_are_here, minimap_pos_x + center - 1.5 + (sub_x - 1) * zoom, minimap_pos_y + center - 1.5 + (sub_y - 1) * zoom)
-	local current_sub_value = bit.lshift(1, sub_x + sub_y * 3)
+	sub_x = math.floor(sub_x / (512 / block_size.x))
+	sub_y = math.floor(sub_y / (512 / block_size.y))
+	local current_sub_value = bit.lshift(1, sub_x + sub_y * block_size.x)
 	local chunk_coords = encode_coords(chunk_x, chunk_y)
 	local current_chunk_bitmask = seen_areas[chunk_coords] or 0
 	local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
-	if GameGetFrameNum() > 20 and current_chunk_bitmask ~= new_value then
-		set_area_dirty(6, 6, 6, 6)
+	if current_chunk_bitmask ~= new_value then
+		-- color_data = {}
 		seen_areas[chunk_coords] = new_value
 		local out = ""
 		for k, v in pairs(seen_areas) do
-			out = out .. k .. "_" .. v
+			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation?
 			if next(seen_areas,k) then
 				out = out .. ","
 			end
@@ -199,31 +184,60 @@ function OnWorldPreUpdate()
 		GlobalsSetValue("LocationTracker_seen_areas", out)
 	end
 
-	if map and not HasFlagPersistent("locationtracker_hide_map") and has_dirty_areas() then
-		local location_tracker = EntityGetWithName("location_tracker")
-		local children = EntityGetAllChildren(location_tracker)
-		if children then
-			(function()
-				local boop = 0
-				for coords,_ in pairs(dirty_areas) do
-					boop = boop + 1
-					if boop > 11 then return end
-					local xy = split_string(coords, "_")
-					local x, y = xy[1]-1, xy[2]-1
-					local child = children[(x+1)+(y*11)]
-					local sprite_component = EntityGetFirstComponentIncludingDisabled(child, "SpriteComponent")
-					local color_data = get_color_data(cx, cy, x-5, y-5)
-					dirty_areas[coords] = nil
-					EntitySetTransform(child, minimap_pos_x + x*(zoom*3), minimap_pos_y + y*(zoom*3), color_data.rot, color_data.scale_x * zoom, zoom)
-					-- Only refresh if the file needs changing
-					local image_file = ComponentGetValue2(sprite_component, "image_file")
-					if image_file ~= color_data.sprite_file then
-						ComponentSetValue2(sprite_component, "image_file", color_data.image_file)
-						EntityRefreshSprite(child, sprite_component)
-					end
-					ComponentSetValue2(sprite_component, "rect_animation", color_data.anim)
+	if map then
+		if visible then
+			-- Draw the map
+			for y=0, size.y-1 do
+				for x=0, size.x-1 do
+					local idx = x+y*size.x
+					color_data[idx] = get_color_data(cx, cy, x-math.floor(size.x/2), y-math.floor(size.y/2))
+					GuiColorSetForNextWidget(gui, color_data[idx].color.r, color_data[idx].color.g, color_data[idx].color.b, 1)
+					-- GuiImage(gui, 10010 + idx+1, math.floor(offx) + math.floor(scr_half_w - tot_size_half_x) + x*zoom_block_x, math.floor(offy) + math.floor(scr_half_h - tot_size_half_y) + y*zoom_block_y, "mods/LocationTracker/a.png", 1, zoom, 0)
+					-- GuiImage( gui, id:int, x:number, y:number, sprite_filename:string, alpha:number, scale:number, rotation:number, scale_y:number = 0.0, rect_animation_playback_type:int = GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide, rect_animation_name:string = "" ) ['scale' will be used for 'scale_y' if 'scale_y' equals 0.]
+					GuiImage(
+						gui,
+						10010 + idx, -- id:int
+						minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
+						minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
+						-- math.floor(screen_width/2 - total_size.x/2) + (x+color_data[idx].offset.x)*zoom*block_size.x, -- x:number
+						-- math.floor(screen_height/2 - total_size.y/2) + (y+color_data[idx].offset.y)*zoom*block_size.y, -- y:number
+						"mods/LocationTracker/files/color_sprites.xml", -- sprite_filename:string
+						1, -- alpha:number
+						color_data[idx].scale_x * zoom / sprite_scale, -- scale:number
+						zoom / sprite_scale, --color_data[idx].rot -- rotation:number
+						color_data[idx].rot, -- scale_y:number
+						GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndPause, -- rect_animation_playback_type:int = GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide
+						color_data[idx].anim -- rect_animation_name:string = ""
+					)
 				end
-			end)()
+			end
+			-- Border
+			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
+			-- Draw the dot in the center
+			GuiZSetForNextWidget(gui, -999)
+			GuiImage(
+				gui,
+				25000, -- id:int
+				minimap_pos_x + math.floor(total_size.x/2) + (sub_x-1)*zoom, -- x:number
+				minimap_pos_y + math.floor(total_size.y/2) + (sub_y-1)*zoom, -- y:number
+				-- minimap_pos_x + math.floor(total_size.x/2 + 0.5+(sub_x-2)*zoom), -- x:number
+				-- minimap_pos_y + math.floor(total_size.y/2 + 0.5+(sub_y-2)*zoom), -- y:number
+				"mods/LocationTracker/files/you_are_here.png", -- sprite_filename:string
+				1, -- alpha:number
+				0.5 -- scale:number
+			)
+		end
+		-- Lock button
+		if GuiImageButton(gui, 30001, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
+			locked = not locked
+		end
+		-- Show/hide button
+		if GuiImageButton(gui, 30002, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 11), "", "mods/LocationTracker/files/eye_"..(visible and "open" or "closed") ..".png") then
+			visible = not visible
+		end
+		-- Fog of war button
+		if GuiImageButton(gui, 30003, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
+			fog_of_war = not fog_of_war
 		end
 	end
 end
@@ -235,22 +249,14 @@ function OnModPostInit()
 	end
 end
 
-function OnPlayerSpawned(player)
-	if EntityGetWithName("location_tracker") == 0 then
-		EntityLoad("mods/LocationTracker/files/minimap.xml", minimap_pos_x, minimap_pos_y)
-		EntityLoad("mods/LocationTracker/files/you_are_here.xml", minimap_pos_x + center, minimap_pos_y + center)
-		set_minimap_visible(not HasFlagPersistent("locationtracker_hide_map"))
-	end
-end
-
 function get_color_data(x, y, offset_x, offset_y)
+	-- print("getting color data")
 	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
 	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
 	local chunk = map[encode_coords(biome_x, biome_y)]
 	local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
-	local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
 	local rot, scale_x, scale_y = 0, 1, 1
-	if HasFlagPersistent("locationtracker_fog_of_war_disabled") then
+	if not fog_of_war then
 		chunk_bitmask = 0
 	else
 		if not permutation_data.indexes[511 - chunk_bitmask] then
@@ -269,21 +275,31 @@ function get_color_data(x, y, offset_x, offset_y)
 			chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
 		end
 	end
-	local color = math.floor(chunk.r / 255 * 0xff0000) + math.floor(chunk.g / 255 * 0xff00) + math.floor(chunk.b / 255 * 0xff)
-	local image_file = "mods/LocationTracker/files/color_sprites.xml"
-	if mod_colors[color] then
-		image_file = mod_colors[color]--.image_file
-	end
+
+	local offsets = {
+    { x = 0, y = 0 },
+    { x = 1, y = 0 },
+    { x = 1, y = 1 },
+		{ x = 0, y = 1 },
+		-- These are for when scale_x == -1
+    { x = 1, y = 0 },
+    { x = 1, y = 1 },
+    { x = 0, y = 1 },
+    { x = 0, y = 0 },
+  }
+	local quadrant = math.floor(rot / (math.pi * 2) * 4) + 4 * (scale_x == -1 and 1 or 0) % 8
+	-- local quadrant = (math.floor(rot / (math.pi * 2) * 4) + (scale_x == -1 and 3 or 0)) % 4
+
 	return {
-		image_file = image_file,
-		anim = "anim_" .. tostring(color) .. "_" .. chunk_bitmask,
+		anim = "anim_" .. chunk_bitmask,
 		scale_x = scale_x,
 		rot = rot,
+		offset = offsets[quadrant+1],
 		is_fully_black = chunk_bitmask == 101,
 		color = { r = chunk.r / 255, g = chunk.g / 255, b = chunk.b / 255 },
 	}
 end
 
 function OnPausedChanged(is_paused, is_inventory_pause)
-	set_minimap_visible(not (is_paused or is_inventory_pause or HasFlagPersistent("locationtracker_hide_map")))
+	-- set_minimap_visible(not (is_paused or is_inventory_pause or HasFlagPersistent("locationtracker_hide_map")))
 end

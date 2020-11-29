@@ -19,7 +19,7 @@ content = content .. "map = {"
 for y=0,h-1 do
   for x=0,w-1 do
     local r, g, b = _BiomeMapGetPixel(x, y)
-    content = content .. "[\""..encode_coords(x, y).."\"] = " .. string.format("{ r = %s, g = %s, b = %s },", r, g, b)
+    content = content .. "["..encode_coords(x, y).."] = " .. string.format("{ r = %s, g = %s, b = %s },\n", r, g, b)
   end
 end
 

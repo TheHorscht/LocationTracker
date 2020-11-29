@@ -1,1 +1,2 @@
+- Hide map when dead
 - Update preview image
