@@ -1,0 +1,12 @@
+<Entity serialize="0">
+
+  <ControlsComponent />
+  
+  <LuaComponent
+    script_source_file="mods/LocationTracker/files/controls_watcher.lua"
+    execute_on_added="1"
+    remove_after_executed="1"
+    >
+  </LuaComponent>
+
+</Entity>

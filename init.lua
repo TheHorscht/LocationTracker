@@ -27,12 +27,17 @@ local sprite_scale = 3
 local color_data = {}
 local size = { x = 11, y = 11 }
 local block_size = { x = 3, y = 3 }
-local total_size = { x = size.x * block_size.x * zoom, y = size.y * block_size.y * zoom }
+local total_size
+local function calculate_total_size()
+	total_size = { x = size.x * block_size.x * zoom, y = size.y * block_size.y * zoom }
+end
+calculate_total_size()
 local screen_width, screen_height = nil, nil
 
 local locked = true
 local visible = true
 local fog_of_war = false
+local offx, offy = 0, 0
 
 local biome_map_script_paths = {}
 for i, mod_id in ipairs(ModGetActiveModIDs()) do
@@ -128,7 +133,7 @@ function OnWorldPreUpdate()
 	-- dofile("mods/LocationTracker/files/gui.lua")
 	gui = gui or GuiCreate()
 	GuiStartFrame(gui)
-	-- GuiOptionsAdd(gui, GUI_OPTION.NoPositionTween)
+	GuiOptionsAdd(gui, GUI_OPTION.NoPositionTween)
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)
 	end
@@ -185,7 +190,7 @@ function OnWorldPreUpdate()
 	end
 
 	if map then
-		if visible then
+		if visible or not locked then
 			-- Draw the map
 			for y=0, size.y-1 do
 				for x=0, size.x-1 do
@@ -197,8 +202,8 @@ function OnWorldPreUpdate()
 					GuiImage(
 						gui,
 						10010 + idx, -- id:int
-						minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
-						minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
+						offx + minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
+						offy + minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
 						-- math.floor(screen_width/2 - total_size.x/2) + (x+color_data[idx].offset.x)*zoom*block_size.x, -- x:number
 						-- math.floor(screen_height/2 - total_size.y/2) + (y+color_data[idx].offset.y)*zoom*block_size.y, -- y:number
 						"mods/LocationTracker/files/color_sprites.xml", -- sprite_filename:string
@@ -212,14 +217,14 @@ function OnWorldPreUpdate()
 				end
 			end
 			-- Border
-			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
+			GuiImageNinePiece(gui, 40000, offx + minimap_pos_x, offy + minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
 			-- Draw the dot in the center
 			GuiZSetForNextWidget(gui, -999)
 			GuiImage(
 				gui,
 				25000, -- id:int
-				minimap_pos_x + math.floor(total_size.x/2) + (sub_x-1)*zoom, -- x:number
-				minimap_pos_y + math.floor(total_size.y/2) + (sub_y-1)*zoom, -- y:number
+				offx + minimap_pos_x + math.floor(total_size.x/2) + (sub_x-1)*zoom, -- x:number
+				offy + minimap_pos_y + math.floor(total_size.y/2) + (sub_y-1)*zoom, -- y:number
 				-- minimap_pos_x + math.floor(total_size.x/2 + 0.5+(sub_x-2)*zoom), -- x:number
 				-- minimap_pos_y + math.floor(total_size.y/2 + 0.5+(sub_y-2)*zoom), -- y:number
 				"mods/LocationTracker/files/you_are_here.png", -- sprite_filename:string
@@ -227,17 +232,50 @@ function OnWorldPreUpdate()
 				0.5 -- scale:number
 			)
 		end
+		if not locked then
+			GuiOptionsAddForNextWidget(gui, GUI_OPTION.IsDraggable)
+			local tw, th = GuiGetTextDimensions(gui, "DRAG")
+			local start_x = offx + minimap_pos_x + total_size.x/2 - math.floor(tw/2)
+			local start_y = offy + minimap_pos_y - th - 2
+			GuiButton(gui, 4999, start_x, start_y, "DRAG")
+			local clicked, right_clicked, hovered, xx, yy, width, height, draw_x, draw_y = GuiGetPreviousWidgetInfo(gui)
+			offx = math.floor(offx + (draw_x - start_x))
+			offy = math.floor(offy + (draw_y - start_y))
+			offx = math.max(5 - minimap_pos_x, math.min(screen_width - (total_size.x + 5) - minimap_pos_x, offx))
+			offy = math.max(5 - minimap_pos_y, math.min(screen_height - (total_size.y + 5) - minimap_pos_y, offy))
+	
+			local start_x = offx + minimap_pos_x + total_size.x
+			local start_y = offy + minimap_pos_y + total_size.y
+			GuiOptionsAddForNextWidget(gui, GUI_OPTION.IsDraggable)
+			GuiButton(gui, 5000, start_x, start_y, "  ")
+			local clicked, right_clicked, hovered, xx, yy, width, height, draw_x, draw_y = GuiGetPreviousWidgetInfo(gui)
+			GuiImage(gui, 5001, xx, yy, "mods/LocationTracker/files/resize_handle.png", 1, 1, 0)
+			local dx = math.floor((xx - start_x) / zoom / 10)
+			local dy = math.floor((yy - start_y) / zoom / 10)
+			local old_x = size.x
+			local old_y = size.y
+			size.x = math.max(3, size.x + dx)
+			size.y = math.max(3, size.y + dy)
+			if size.x ~= old_x or size.y ~= old_y then
+				calculate_total_size()
+			end
+		end
 		-- Lock button
-		if GuiImageButton(gui, 30001, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
+		if GuiImageButton(gui, 30001, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
 			locked = not locked
+			-- if not locked then
+			-- 	EntityLoad("mods/LocationTracker/files/controls_watcher.xml")
+			-- end
 		end
-		-- Show/hide button
-		if GuiImageButton(gui, 30002, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 11), "", "mods/LocationTracker/files/eye_"..(visible and "open" or "closed") ..".png") then
-			visible = not visible
-		end
-		-- Fog of war button
-		if GuiImageButton(gui, 30003, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
-			fog_of_war = not fog_of_war
+		if locked then
+			-- Show/hide button
+			if GuiImageButton(gui, 30002, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 11), "", "mods/LocationTracker/files/eye_"..(visible and "open" or "closed") ..".png") then
+				visible = not visible
+			end
+			-- Fog of war button
+			if GuiImageButton(gui, 30003, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
+				fog_of_war = not fog_of_war
+			end
 		end
 	end
 end
