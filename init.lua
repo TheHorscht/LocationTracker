@@ -25,7 +25,10 @@ local map
 local zoom = 1.5
 local sprite_scale = 3
 local color_data = {}
-local size = { x = 11, y = 11 }
+local size = {
+	x = ModSettingGet("LocationTracker_minimap_size_x") or 11,
+	y = ModSettingGet("LocationTracker_minimap_size_y") or 11
+}
 local block_size = { x = 3, y = 3 }
 local total_size
 local function calculate_total_size()
@@ -234,7 +237,8 @@ function OnWorldPreUpdate()
 		end
 		-- GuiSlider( gui, id:int, x:number, y:number, text:string, value:number, value_min:number, value_max:number, value_default:number, value_display_multiplier:number, value_formatting:string, width:number ) -> new_value:number [This is not intended to be outside mod settings menu, and might bug elsewhere.]
 		local old_zoom = zoom
-		zoom = GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.2, 5, 1, 1, " ", 300)
+		zoom = GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300)
+		-- zoom = math.floor(GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300) * 2) / 2
 		if zoom ~= old_zoom then
 			calculate_total_size()
 		end
@@ -271,13 +275,15 @@ function OnWorldPreUpdate()
 		-- Lock button
 		if GuiImageButton(gui, 30001, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
 			locked = not locked
+			-- Save settings when locking
 			if locked then
 				minimap_pos_x = minimap_pos_x + offx
 				minimap_pos_y = minimap_pos_y + offy
 				offx, offy = 0, 0
-				-- Save settings
 				ModSettingSet("LocationTracker_minimap_pos_x", minimap_pos_x)
 				ModSettingSet("LocationTracker_minimap_pos_y", minimap_pos_y)
+				ModSettingSet("LocationTracker_minimap_size_x", size.x)
+				ModSettingSet("LocationTracker_minimap_size_y", size.y)
 			end
 		end
 		if locked then
