@@ -16,8 +16,8 @@ local map_width = 70
 local map_height = 48
 -- local minimap_pos_x = 1009-- + 0.5
 -- local minimap_pos_y = 65-- + 0.5
-local minimap_pos_x = 490-- + 0.5
-local minimap_pos_y = 65-- + 0.5
+local minimap_pos_x = ModSettingGet("LocationTracker_minimap_pos_x") or 490-- + 0.5
+local minimap_pos_y = ModSettingGet("LocationTracker_minimap_pos_y") or 65-- + 0.5
 local biome_map_offset_y = 14
 local seen_areas
 local last_chunk_x, last_chunk_y = 0, 0
@@ -217,20 +217,26 @@ function OnWorldPreUpdate()
 				end
 			end
 			-- Border
+			GuiZSetForNextWidget(gui, -999)
 			GuiImageNinePiece(gui, 40000, offx + minimap_pos_x, offy + minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
 			-- Draw the dot in the center
+			local dot_scale = 0.5
 			GuiZSetForNextWidget(gui, -999)
 			GuiImage(
 				gui,
 				25000, -- id:int
 				offx + minimap_pos_x + math.floor(total_size.x/2) + (sub_x-1)*zoom, -- x:number
 				offy + minimap_pos_y + math.floor(total_size.y/2) + (sub_y-1)*zoom, -- y:number
-				-- minimap_pos_x + math.floor(total_size.x/2 + 0.5+(sub_x-2)*zoom), -- x:number
-				-- minimap_pos_y + math.floor(total_size.y/2 + 0.5+(sub_y-2)*zoom), -- y:number
 				"mods/LocationTracker/files/you_are_here.png", -- sprite_filename:string
 				1, -- alpha:number
-				0.5 -- scale:number
+				dot_scale -- scale:number
 			)
+		end
+		-- GuiSlider( gui, id:int, x:number, y:number, text:string, value:number, value_min:number, value_max:number, value_default:number, value_display_multiplier:number, value_formatting:string, width:number ) -> new_value:number [This is not intended to be outside mod settings menu, and might bug elsewhere.]
+		local old_zoom = zoom
+		zoom = GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.2, 5, 1, 1, " ", 300)
+		if zoom ~= old_zoom then
+			calculate_total_size()
 		end
 		if not locked then
 			GuiOptionsAddForNextWidget(gui, GUI_OPTION.IsDraggable)
@@ -239,10 +245,12 @@ function OnWorldPreUpdate()
 			local start_y = offy + minimap_pos_y - th - 2
 			GuiButton(gui, 4999, start_x, start_y, "DRAG")
 			local clicked, right_clicked, hovered, xx, yy, width, height, draw_x, draw_y = GuiGetPreviousWidgetInfo(gui)
-			offx = math.floor(offx + (draw_x - start_x))
-			offy = math.floor(offy + (draw_y - start_y))
-			offx = math.max(5 - minimap_pos_x, math.min(screen_width - (total_size.x + 5) - minimap_pos_x, offx))
-			offy = math.max(5 - minimap_pos_y, math.min(screen_height - (total_size.y + 5) - minimap_pos_y, offy))
+			if draw_x ~= start_x or draw_y ~= start_y then
+				offx = math.floor(offx + (draw_x - start_x))
+				offy = math.floor(offy + (draw_y - start_y))
+				offx = math.max(5 - minimap_pos_x, math.min(screen_width - (total_size.x + 5) - minimap_pos_x, offx))
+				offy = math.max(5 - minimap_pos_y, math.min(screen_height - (total_size.y + 5) - minimap_pos_y, offy))
+			end
 	
 			local start_x = offx + minimap_pos_x + total_size.x
 			local start_y = offy + minimap_pos_y + total_size.y
@@ -250,8 +258,8 @@ function OnWorldPreUpdate()
 			GuiButton(gui, 5000, start_x, start_y, "  ")
 			local clicked, right_clicked, hovered, xx, yy, width, height, draw_x, draw_y = GuiGetPreviousWidgetInfo(gui)
 			GuiImage(gui, 5001, xx, yy, "mods/LocationTracker/files/resize_handle.png", 1, 1, 0)
-			local dx = math.floor((xx - start_x) / zoom / 10)
-			local dy = math.floor((yy - start_y) / zoom / 10)
+			local dx = math.floor((xx - start_x) / zoom / 5)
+			local dy = math.floor((yy - start_y) / zoom / 5)
 			local old_x = size.x
 			local old_y = size.y
 			size.x = math.max(3, size.x + dx)
@@ -263,9 +271,14 @@ function OnWorldPreUpdate()
 		-- Lock button
 		if GuiImageButton(gui, 30001, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
 			locked = not locked
-			-- if not locked then
-			-- 	EntityLoad("mods/LocationTracker/files/controls_watcher.xml")
-			-- end
+			if locked then
+				minimap_pos_x = minimap_pos_x + offx
+				minimap_pos_y = minimap_pos_y + offy
+				offx, offy = 0, 0
+				-- Save settings
+				ModSettingSet("LocationTracker_minimap_pos_x", minimap_pos_x)
+				ModSettingSet("LocationTracker_minimap_pos_y", minimap_pos_y)
+			end
 		end
 		if locked then
 			-- Show/hide button
