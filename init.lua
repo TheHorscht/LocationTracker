@@ -3,6 +3,8 @@ dofile_once("data/scripts/lib/utilities.lua")
 local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
 local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
 
+ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/files/gun_append.lua")
+
 function split_string(inputstr, sep)
   sep = sep or "%s"
   local t= {}
@@ -132,11 +134,116 @@ local function get_position()
 	return x, y
 end
 
+local function is_inside_rect(x, y, rect_x, rect_y, width, height)
+	return not ((x < rect_x) or (x > rect_x + width) or (y < rect_y) or (y > rect_y + height))
+end
+
+local box_x, box_y, box_dragging = 0, 0, false
+
+local function mouse_loop(gui)
+	if not controls_component then
+		local entity_name = "LocationTracker_controls_entity"
+		local controls_entity = EntityGetWithName(entity_name)
+		if controls_entity == 0 then
+			controls_entity = EntityCreateNew(entity_name)
+		end
+		controls_component = EntityAddComponent2(controls_entity, "ControlsComponent")
+	end
+	
+	local x, y, dx, dy, left_down
+	mouse_loop_last_x = mouse_loop_last_x or 0
+	mouse_loop_last_y = mouse_loop_last_y or 0
+	if controls_component then
+		x, y = ComponentGetValue2(controls_component, "mMousePosition")
+		-- dx, dy = ComponentGetValue2(controls_component, "mMouseDelta")
+		left_down = ComponentGetValue2(controls_component, "mButtonDownFire")
+		left_pressed = ComponentGetValue2(controls_component, "mButtonFrameFire") == GameGetFrameNum()
+		mMousePositionRawX, mMousePositionRawY = ComponentGetValue2(controls_component, "mMousePositionRaw")
+		mMousePositionRawPrevX, mMousePositionRawPrevY = ComponentGetValue2(controls_component, "mMousePositionRawPrev")
+		rawDX = mMousePositionRawX - mMousePositionRawPrevX
+		rawDY = mMousePositionRawY - mMousePositionRawPrevY
+		-- right_down = ComponentGetValue2(controls_component, "mButtonDownRightClick")
+	end
+	local virt_x = MagicNumbersGetValue("VIRTUAL_RESOLUTION_X")
+	local virt_y = MagicNumbersGetValue("VIRTUAL_RESOLUTION_Y")
+	local screen_width, screen_height = GuiGetScreenDimensions(gui)
+	local scale_x = virt_x / screen_width
+	local scale_y = virt_y / screen_height
+	local cx, cy = GameGetCameraPos()
+	-- local sx, sy = (x - cx) / scale_x + screen_width / 2 + scale_x * 1.7, (y - cy) / scale_y + screen_height / 2
+	-- local sx, sy = x - cx / scale_x + screen_width / 2 + 1.5, y - cy / scale_y + screen_height / 2
+	local sx, sy = (x - cx) / scale_x + screen_width / 2 + 1.5, (y - cy) / scale_y + screen_height / 2
+	dx, dy = math.floor(sx + 0.5) - math.floor(mouse_loop_last_x + 0.5), math.floor(sy + 0.5) - math.floor(mouse_loop_last_y + 0.5)
+	mouse_loop_last_x = sx
+	mouse_loop_last_y = sy
+	local gui_y = 250
+	local function new_line() gui_y = gui_y + 10 end
+	GuiText(gui, 40, gui_y, "msx: " .. tostring(math.floor(sx)))
+	GuiText(gui, 100, gui_y, "msy: " .. tostring(math.floor(sy)))
+	new_line()
+	GuiText(gui, 40, gui_y, "box_x: " .. tostring(box_x))
+	GuiText(gui, 100, gui_y, "box_y: " .. tostring(box_y))
+	new_line()
+	GuiText(gui, 40, gui_y, "dx: " .. tostring(dx))
+	GuiText(gui, 100, gui_y, "dy: " .. tostring(dy))
+	new_line()
+	-- GuiText(gui, 40, 270, "RDown: " .. tostring(right_down))
+	-- GuiText(gui, 40, gui_y, "LDown: " .. tostring(left_down))
+	-- new_line()
+	-- GuiText(gui, 40, gui_y, "scale_x: " .. tostring(scale_x))
+	-- new_line()
+	GuiText(gui, 40, gui_y, "virt_x: " .. tostring(virt_x))
+	GuiText(gui, 130, gui_y, "virt_y: " .. tostring(virt_y))
+	new_line()
+	GuiText(gui, 40, gui_y, "screen_width: " .. tostring(screen_width))
+	GuiText(gui, 130, gui_y, "screen_height: " .. tostring(screen_height))
+	-- new_line()
+	-- GuiText(gui, 40, gui_y, "diff_x: " .. tostring(sx - box_x))
+	-- new_line()
+	-- GuiText(gui, 40, gui_y, "diff_y: " .. tostring(sy - box_y))
+	
+	if box_dragging and not left_down then
+		box_dragging = false
+	end
+	
+	local inside = is_inside_rect(sx, sy, box_x, box_y, 20, 20)
+
+	local players = EntityGetWithTag("player_unit")
+	
+	if inside or box_dragging then
+		GlobalsSetValue("LocationTracker_prevent_wand_firing", "1")
+	elseif not (inside or box_dragging) then
+		GlobalsSetValue("LocationTracker_prevent_wand_firing", "0")
+	end
+
+	if left_pressed then
+		GamePrint("pressed " .. GameGetFrameNum() .. " - " .. (inside and "inside" or "outside"))
+	end
+
+	if inside and left_pressed then
+		box_dragging = true
+	end
+	
+	if box_dragging then
+		-- 1.882
+		box_x = box_x + dx --2.9976580796252927400468384074941
+		box_y = box_y + dy --2.9752066115702479338842975206612
+		-- GuiText(gui, 40, 290, "dragging: " .. tostring(box_dragging))
+	end
+
+	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+	GuiImage(gui, 9999, box_x, box_y, "mods/LocationTracker/" .. (inside and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
+
+end
+
 function OnWorldPreUpdate()
 	-- dofile("mods/LocationTracker/files/gui.lua")
 	gui = gui or GuiCreate()
 	GuiStartFrame(gui)
 	GuiOptionsAdd(gui, GUI_OPTION.NoPositionTween)
+
+	mouse_loop(gui)
+
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)
 	end
@@ -236,12 +343,6 @@ function OnWorldPreUpdate()
 			)
 		end
 		-- GuiSlider( gui, id:int, x:number, y:number, text:string, value:number, value_min:number, value_max:number, value_default:number, value_display_multiplier:number, value_formatting:string, width:number ) -> new_value:number [This is not intended to be outside mod settings menu, and might bug elsewhere.]
-		local old_zoom = zoom
-		zoom = GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300)
-		-- zoom = math.floor(GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300) * 2) / 2
-		if zoom ~= old_zoom then
-			calculate_total_size()
-		end
 		if not locked then
 			GuiOptionsAddForNextWidget(gui, GUI_OPTION.IsDraggable)
 			local tw, th = GuiGetTextDimensions(gui, "DRAG")
@@ -296,6 +397,17 @@ function OnWorldPreUpdate()
 				fog_of_war = not fog_of_war
 			end
 		end
+	end
+	if not locked then
+		GuiBeginAutoBox(gui)
+		-- GuiEndAutoBoxNinePiece(gui, margin:number = 5, size_min_x:number = 0, size_min_y:number = 0, mirrorize_over_x_axis:bool = false, x_axis:number = 0, sprite_filename:string = "data/ui_gfx/decorations/9piece0_gray.png", sprite_highlight_filename:string = "data/ui_gfx/decorations/9piece0_gray.png" )
+		local old_zoom = zoom
+		zoom = GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " $0", 300)
+		-- zoom = math.floor(GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300) * 2) / 2
+		if zoom ~= old_zoom then
+			calculate_total_size()
+		end
+		GuiEndAutoBoxNinePiece(gui)
 	end
 end
 
