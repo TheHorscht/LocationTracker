@@ -14,7 +14,7 @@ end
 
 function LocationTracker_draw_action(arg1)
   local entity_id = GetUpdatedEntityID()
-  if EntityHasTag(entity_id, "player_unit") and GlobalsGetValue("LocationTracker_prevent_wand_firing", "0") ~= "1" then
+  if EntityHasTag(entity_id, "player_unit") and GlobalsGetValue("EZMouse_prevent_wand_firing", "0") ~= "1" then
     old_draw_action(arg1)
   end
 end
