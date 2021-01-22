@@ -220,19 +220,50 @@ end
 -- 	GlobalsSetValue("LocationTracker_prevent_wand_firing", prevent_wand_firing and "1" or "0")
 -- end
 
-local box = EZMouse.new_draggable(0, 0, 20, 20, {
-	on_drag = function(self, dx, dy)
-		self.x = self.x + dx
-		self.y = self.y + dy
-	end
-})
+local box = EZMouse.Draggable.new(0, 0, 20, 20)
+box:AddEventListener("drag", function(self, dx, dy)
+	self.x = self.x + dx
+	self.y = self.y + dy
+end)
 
-local box2 = EZMouse.new_draggable(0, 100, 20, 20, {
-	on_drag = function(self, dx, dy)
-		self.x = self.x + dx
-		self.y = self.y + dy
+local resize_handle
+local box2 = EZMouse.Draggable.new(0, 100, 50, 50)
+box2:AddEventListener("drag", function(self, dx, dy)
+	self.x = self.x + dx
+	self.y = self.y + dy
+	resize_handle.x = resize_handle.x + dx
+	resize_handle.y = resize_handle.y + dy
+end)
+box2:AddEventListener("drag_start", function(self, x, y)
+	GamePrint(string.format("Starting drag at %d, %d", x, y))
+end)
+local listener = box2:AddEventListener("drag_end", function(self, x, y)
+	GamePrint(string.format("Ending drag at %d, %d", x, y))
+end)
+
+resize_handle = EZMouse.Draggable.new(50, 150, 5, 5)
+resize_handle:AddEventListener("drag", function(self, dx, dy)
+	self.x = self.x + dx
+	self.y = self.y + dy
+	box2.width = box2.width + dx
+	box2.height = box2.height + dy
+end)
+
+EZMouse.AddEventListener("mouse_down", function(e)
+	-- GamePrint(tostring(e.button) .." down at " .. tostring(e.x) .. ", " .. tostring(e.y))
+	-- GameCreateParticle("poo", e.world_x, e.world_y, 1, -50, 0, true)
+end)
+
+EZMouse.AddEventListener("mouse_up", function(e)
+	-- GamePrint(tostring(e.button) .." up at " .. tostring(e.x) .. ", " .. tostring(e.y))
+end)
+
+EZMouse.AddEventListener("mouse_move", function(e)
+	if EZMouse.left_down then
+		-- GamePrint("Mouse move to " .. tostring(e.x) .. ", " .. tostring(e.y))
+		-- GameCreateParticle("poo", e.world_x, e.world_y, 10, e.vx * 10, e.vy * 10, true)
 	end
-})
+end)
 
 function OnWorldPreUpdate()
 	-- dofile("mods/LocationTracker/files/gui.lua")
@@ -245,7 +276,9 @@ function OnWorldPreUpdate()
 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 	GuiImage(gui, 9999, box.x, box.y, "mods/LocationTracker/" .. (box.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	GuiImage(gui, 10000, box2.x, box2.y, "mods/LocationTracker/" .. (box2.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
+	GuiImage(gui, 10000, box2.x, box2.y, "mods/LocationTracker/" .. (box2.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, box2.width / 10, box2.height / 10)
+	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+	GuiImage(gui, 10000, resize_handle.x, resize_handle.y, "mods/LocationTracker/" .. (resize_handle.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 0.5, 0.5)
 
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)
