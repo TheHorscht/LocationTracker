@@ -8,6 +8,8 @@ local Draggable = {
 }
 
 function Draggable.new(x, y, width, height, resizable)
+  local resize_start_sx, resize_start_sy = 0, 0
+  local resize_start_width, resize_start_height = 0, 0
   local protected = {
     dragging = false,
     is_hovered = false,
@@ -63,7 +65,7 @@ function Draggable.new(x, y, width, height, resizable)
       { x = self.x + self.width - 5, y = self.y - 5,               width = 10,              height = 10,               move = {1,1} }, -- top right
       { x = self.x + self.width - 5, y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0} }, -- right
       { x = self.x + self.width - 5, y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1} }, -- bottom right
-      { x = self.x + 5,              y = self.y + self.height - 5, width = self.width - 10, height = 10,               move = {0,1} }, -- bottom
+      { x = self.x + 5,              y = self.y + self.height - 5, width = self.width - 10, height = 10,               move = {0,-1} }, -- bottom
       { x = self.x - 5,              y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1} }, -- bottom left
       { x = self.x - 5,              y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0} }, -- left
     }
@@ -76,44 +78,65 @@ function Draggable.new(x, y, width, height, resizable)
           if left_pressed then
             protected.resizing = i
             fire_event(self, "resize_start", i)
+            resize_start_sx = sx
+            resize_start_sy = sy
+            resize_start_width = self.width
+            resize_start_height = self.height
           end
           break
         end
       end
     end
 
-    if protected.resizing then
-      protected.resize_handle = resize_handles[protected.resizing]
-      protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * dx
-      protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * dy
-    end
+    local move_x, move_y = dx, dy
+    local start_x, start_y = self.x, self.y
+    local start_width, start_height = self.width, self.height
+    local min_size = { x = 100, y = 50 }
 
     if protected.resizing == 1 then
-      self.x = self.x + dx
-      self.y = self.y + dy
-      self.width = self.width - dx
-      self.height = self.height - dy
+      self.width = math.max(min_size.x, resize_start_width + (resize_start_sx - sx))
+      self.height = math.max(min_size.y, resize_start_height + (resize_start_sy - sy))
+      move_x = start_width - self.width
+      move_y = start_height - self.height
+      self.x = self.x + move_x
+      self.y = self.y + move_y
     elseif protected.resizing == 2 then
-      self.y = self.y + dy
-      self.height = self.height - dy
+      self.height = math.max(min_size.y, resize_start_height + (resize_start_sy - sy))
+      move_y = start_height - self.height
+      self.y = self.y + move_y
     elseif protected.resizing == 3 then
-      self.y = self.y + dy
-      self.width = self.width + dx
-      self.height = self.height - dy
+      self.width = math.max(min_size.x, resize_start_width + (sx - resize_start_sx))
+      self.height = math.max(min_size.y, resize_start_height + (resize_start_sy - sy))
+      move_x = self.width - start_width
+      move_y = start_height - self.height
+      self.y = self.y + move_y
     elseif protected.resizing == 4 then
-      self.width = self.width + dx
+      self.width = math.max(min_size.x, resize_start_width + (sx - resize_start_sx))
+      move_x = self.width - start_width
     elseif protected.resizing == 5 then
-      self.width = self.width + dx
-      self.height = self.height + dy
+      self.width = math.max(min_size.x, resize_start_width + (sx - resize_start_sx))
+      self.height = math.max(min_size.y, resize_start_height + (sy - resize_start_sy))
+      move_x = self.width - start_width
+      move_y = self.height - start_height
     elseif protected.resizing == 6 then
-      self.height = self.height + dy
+      self.height = math.max(min_size.y, resize_start_height + (sy - resize_start_sy))
+      move_y = start_height - self.height
     elseif protected.resizing == 7 then
-      self.x = self.x + dx
-      self.width = self.width - dx
-      self.height = self.height + dy
+      self.width = math.max(min_size.x, resize_start_width + (resize_start_sx - sx))
+      self.height = math.max(min_size.y, resize_start_height + (sy - resize_start_sy))
+      move_x = start_width - self.width
+      move_y = self.height - start_height
+      self.x = self.x + move_x
     elseif protected.resizing == 8 then
-      self.x = self.x + dx
-      self.width = self.width - dx
+      self.width = math.max(min_size.x, resize_start_width + (resize_start_sx - sx))
+      move_x = start_width - self.width
+      self.x = self.x + move_x
+    end
+
+    if protected.resizing then
+      protected.resize_handle = resize_handles[protected.resizing]
+      protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * move_x --move_y -- dx
+      protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * move_y --dy
     end
 
     if protected.resize_handle_hovered or protected.resizing then

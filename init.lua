@@ -235,10 +235,10 @@ box2:AddEventListener("drag", function(self, dx, dy)
 	-- resize_handle.y = resize_handle.y + dy
 end)
 box2:AddEventListener("drag_start", function(self, x, y)
-	GamePrint(string.format("Starting drag at %d, %d", x, y))
+	-- GamePrint(string.format("Starting drag at %d, %d", x, y))
 end)
-local listener = box2:AddEventListener("drag_end", function(self, x, y)
-	GamePrint(string.format("Ending drag at %d, %d", x, y))
+box2:AddEventListener("drag_end", function(self, x, y)
+	-- GamePrint(string.format("Ending drag at %d, %d", x, y))
 end)
 
 -- resize_handle = EZMouse.Draggable.new(50, 150, 5, 5)
