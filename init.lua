@@ -226,13 +226,13 @@ box:AddEventListener("drag", function(self, dx, dy)
 	self.y = self.y + dy
 end)
 
-local resize_handle
-local box2 = EZMouse.Draggable.new(0, 100, 50, 50)
+-- local resize_handle
+local box2 = EZMouse.Draggable.new(0, 100, 50, 50, true)
 box2:AddEventListener("drag", function(self, dx, dy)
 	self.x = self.x + dx
 	self.y = self.y + dy
-	resize_handle.x = resize_handle.x + dx
-	resize_handle.y = resize_handle.y + dy
+	-- resize_handle.x = resize_handle.x + dx
+	-- resize_handle.y = resize_handle.y + dy
 end)
 box2:AddEventListener("drag_start", function(self, x, y)
 	GamePrint(string.format("Starting drag at %d, %d", x, y))
@@ -241,13 +241,13 @@ local listener = box2:AddEventListener("drag_end", function(self, x, y)
 	GamePrint(string.format("Ending drag at %d, %d", x, y))
 end)
 
-resize_handle = EZMouse.Draggable.new(50, 150, 5, 5)
-resize_handle:AddEventListener("drag", function(self, dx, dy)
-	self.x = self.x + dx
-	self.y = self.y + dy
-	box2.width = box2.width + dx
-	box2.height = box2.height + dy
-end)
+-- resize_handle = EZMouse.Draggable.new(50, 150, 5, 5)
+-- resize_handle:AddEventListener("drag", function(self, dx, dy)
+-- 	self.x = self.x + dx
+-- 	self.y = self.y + dy
+-- 	box2.width = box2.width + dx
+-- 	box2.height = box2.height + dy
+-- end)
 
 EZMouse.AddEventListener("mouse_down", function(e)
 	-- GamePrint(tostring(e.button) .." down at " .. tostring(e.x) .. ", " .. tostring(e.y))
@@ -271,14 +271,17 @@ function OnWorldPreUpdate()
 	GuiStartFrame(gui)
 	GuiOptionsAdd(gui, GUI_OPTION.NoPositionTween)
 
-	EZMouse.update(gui)
+	EZMouse.update()
 
 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 	GuiImage(gui, 9999, box.x, box.y, "mods/LocationTracker/" .. (box.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 	GuiImage(gui, 10000, box2.x, box2.y, "mods/LocationTracker/" .. (box2.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, box2.width / 10, box2.height / 10)
-	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	GuiImage(gui, 10000, resize_handle.x, resize_handle.y, "mods/LocationTracker/" .. (resize_handle.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 0.5, 0.5)
+
+	if box2.resize_handle_hovered or box2.resizing then
+		GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+		GuiImage(gui, 10000, box2.resize_handle.x, box2.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, box2.resize_handle.width / 10, box2.resize_handle.height / 10)
+	end
 
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)

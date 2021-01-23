@@ -7,10 +7,12 @@ local Draggable = {
   instances = setmetatable({}, { __mode = "v" }),
 }
 
-function Draggable.new(x, y, width, height)
+function Draggable.new(x, y, width, height, resizable)
   local protected = {
     dragging = false,
     is_hovered = false,
+    resizable = resizable or false,
+    resizing = false,
   }
   local o = setmetatable({
     _protected = protected,
@@ -22,6 +24,8 @@ function Draggable.new(x, y, width, height)
       drag = {},
       drag_start = {},
       drag_end = {},
+      resize_start = {},
+      resize_end = {},
     }
   }, {
     __index = function(self, key)
@@ -47,31 +51,97 @@ function Draggable.new(x, y, width, height)
 
   o.Update = function(self, sx, sy, dx, dy, left_down, left_pressed)
     local prevent_wand_firing = false
-
-		if protected.dragging and not left_down then
-      protected.dragging = false
-      fire_event(self, "drag_end", self.x, self.y)
-    end
     
-    protected.is_hovered = is_inside_rect(sx, sy, self.x, self.y, self.width, self.height)
-		if protected.is_hovered or protected.dragging then
-			prevent_wand_firing = true
-		end
+    if protected.resizing and not left_down then
+      protected.resizing = false
+    end
+    protected.resize_handle_hovered = false
 
-		protected.is_hovered = is_inside_rect(sx, sy, self.x, self.y, self.width, self.height)
-		if protected.is_hovered or protected.dragging then
-			prevent_wand_firing = true
-		end
+    local resize_handles = {
+      { x = self.x - 5,              y = self.y - 5,               width = 10,              height = 10,               move = {1,1} }, -- top left
+      { x = self.x + 5,              y = self.y - 5,               width = self.width - 10, height = 10,               move = {0,1} }, -- top
+      { x = self.x + self.width - 5, y = self.y - 5,               width = 10,              height = 10,               move = {1,1} }, -- top right
+      { x = self.x + self.width - 5, y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0} }, -- right
+      { x = self.x + self.width - 5, y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1} }, -- bottom right
+      { x = self.x + 5,              y = self.y + self.height - 5, width = self.width - 10, height = 10,               move = {0,1} }, -- bottom
+      { x = self.x - 5,              y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1} }, -- bottom left
+      { x = self.x - 5,              y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0} }, -- left
+    }
+    
+    if not (protected.resizing or protected.dragging) then
+      for i, handle in ipairs(resize_handles) do
+        if protected.resizable and is_inside_rect(sx, sy, handle.x, handle.y, handle.width, handle.height) then
+          protected.resize_handle_hovered = i
+          protected.resize_handle = resize_handles[i]
+          if left_pressed then
+            protected.resizing = i
+            fire_event(self, "resize_start", i)
+          end
+          break
+        end
+      end
+    end
 
-		if protected.is_hovered and left_pressed then
-      protected.dragging = true
-      fire_event(self, "drag_start", self.x, self.y)
-		end
+    if protected.resizing then
+      protected.resize_handle = resize_handles[protected.resizing]
+      protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * dx
+      protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * dy
+    end
 
-		if protected.dragging then
-      if dx ~= 0 or dy ~= 0 then
-        fire_event(self, "drag", dx, dy)
-			end
+    if protected.resizing == 1 then
+      self.x = self.x + dx
+      self.y = self.y + dy
+      self.width = self.width - dx
+      self.height = self.height - dy
+    elseif protected.resizing == 2 then
+      self.y = self.y + dy
+      self.height = self.height - dy
+    elseif protected.resizing == 3 then
+      self.y = self.y + dy
+      self.width = self.width + dx
+      self.height = self.height - dy
+    elseif protected.resizing == 4 then
+      self.width = self.width + dx
+    elseif protected.resizing == 5 then
+      self.width = self.width + dx
+      self.height = self.height + dy
+    elseif protected.resizing == 6 then
+      self.height = self.height + dy
+    elseif protected.resizing == 7 then
+      self.x = self.x + dx
+      self.width = self.width - dx
+      self.height = self.height + dy
+    elseif protected.resizing == 8 then
+      self.x = self.x + dx
+      self.width = self.width - dx
+    end
+
+    if protected.resize_handle_hovered or protected.resizing then
+      prevent_wand_firing = true
+    end
+
+    protected.is_hovered = false
+    if not (protected.resize_handle_hovered or protected.resizing) then
+      if protected.dragging and not left_down then
+        protected.dragging = false
+        fire_event(self, "drag_end", self.x, self.y)
+      end
+  
+      protected.is_hovered = is_inside_rect(sx, sy, self.x, self.y, self.width, self.height)
+      if protected.is_hovered or protected.dragging then
+        prevent_wand_firing = true
+      end
+  
+      if protected.is_hovered and left_pressed then
+        protected.dragging = true
+        fire_event(self, "drag_start", self.x, self.y)
+      end
+  
+      if protected.dragging then
+        if dx ~= 0 or dy ~= 0 then
+          fire_event(self, "drag", dx, dy)
+        end
+      end
     end
 
     return prevent_wand_firing
@@ -146,6 +216,8 @@ local x, y, sx, sy, dx, dy, left_down, left_pressed, right_down, right_pressed,
 
 local function update(gui) -- EZMouse_gui
   EZMouse_gui = EZMouse_gui or gui or GuiCreate()
+  if not gui then GuiStartFrame(EZMouse_gui) end
+  
 	if not controls_component then
 		local entity_name = "EZMouse_controls_entity"
 		local controls_entity = EntityGetWithName(entity_name)
