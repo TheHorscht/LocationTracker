@@ -7,21 +7,30 @@ local Draggable = {
   instances = setmetatable({}, { __mode = "v" }),
 }
 
-function Draggable.new(x, y, width, height, resizable)
+-- function Draggable.new(x, y, width, height, resizable)
+function Draggable.new(props)
+  if type(props) ~= "table" then
+    error("'props' needs to be a table.", 2)
+  end
+
   local resize_start_sx, resize_start_sy = 0, 0
   local resize_start_width, resize_start_height = 0, 0
   local protected = {
+    resizing = false,
     dragging = false,
     is_hovered = false,
-    resizable = resizable or false,
-    resizing = false,
   }
+
   local o = setmetatable({
     _protected = protected,
-    x = x,
-    y = y,
-    width = width,
-    height = height,
+    x = props.x or 0,
+    y = props.y or 0,
+    width = props.width or 100,
+    height = props.height or 100,
+    min_width = props.min_width or 10,
+    min_height = props.min_height or 10,
+    resizable = not not props.resizable,
+    granularity = not not props.granularity or 0.1,
     event_listeners = {
       drag = {},
       drag_start = {},
@@ -38,11 +47,19 @@ function Draggable.new(x, y, width, height, resizable)
     end,
     __newindex = function(self, key, value)
       if protected[key] ~= nil then
-        error("'"..key.."' is read-only.")
+        error("'"..key.."' is read-only.", 2)
       end
       rawset(self, key, value)
     end
   })
+
+  if o.min_width > o.width then
+    error(string.format("min_width(%d) needs to be smaller than width(%d).", o.min_width, o.width), 2)
+  end
+  if o.min_height > o.height then
+    error(string.format("min_height(%d) needs to be smaller than height(%d).", o.min_height, o.height), 2)
+  end
+
   table.insert(Draggable.instances, o)
   
   local function fire_event(self, name, ...)
@@ -60,19 +77,19 @@ function Draggable.new(x, y, width, height, resizable)
     protected.resize_handle_hovered = false
 
     local resize_handles = {
-      { x = self.x - 5,              y = self.y - 5,               width = 10,              height = 10,               move = {1,1} }, -- top left
-      { x = self.x + 5,              y = self.y - 5,               width = self.width - 10, height = 10,               move = {0,1} }, -- top
-      { x = self.x + self.width - 5, y = self.y - 5,               width = 10,              height = 10,               move = {1,1} }, -- top right
-      { x = self.x + self.width - 5, y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0} }, -- right
-      { x = self.x + self.width - 5, y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1} }, -- bottom right
-      { x = self.x + 5,              y = self.y + self.height - 5, width = self.width - 10, height = 10,               move = {0,-1} }, -- bottom
-      { x = self.x - 5,              y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1} }, -- bottom left
-      { x = self.x - 5,              y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0} }, -- left
+      { x = self.x - 5,              y = self.y - 5,               width = 10,              height = 10,               move = {-1,-1} }, -- top left
+      { x = self.x + 5,              y = self.y - 5,               width = self.width - 10, height = 10,               move = {0,-1}  }, -- top
+      { x = self.x + self.width - 5, y = self.y - 5,               width = 10,              height = 10,               move = {1,-1}  }, -- top right
+      { x = self.x + self.width - 5, y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0}   }, -- right
+      { x = self.x + self.width - 5, y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1}   }, -- bottom right
+      { x = self.x + 5,              y = self.y + self.height - 5, width = self.width - 10, height = 10,               move = {0,1}   }, -- bottom
+      { x = self.x - 5,              y = self.y + self.height - 5, width = 10,              height = 10,               move = {-1,1}  }, -- bottom left
+      { x = self.x - 5,              y = self.y + 5,               width = 10,              height = self.height - 10, move = {-1,0}  }, -- left
     }
     
     if not (protected.resizing or protected.dragging) then
       for i, handle in ipairs(resize_handles) do
-        if protected.resizable and is_inside_rect(sx, sy, handle.x, handle.y, handle.width, handle.height) then
+        if self.resizable and is_inside_rect(sx, sy, handle.x, handle.y, handle.width, handle.height) then
           protected.resize_handle_hovered = i
           protected.resize_handle = resize_handles[i]
           if left_pressed then
@@ -91,50 +108,18 @@ function Draggable.new(x, y, width, height, resizable)
     local move_x, move_y = dx, dy
     local start_x, start_y = self.x, self.y
     local start_width, start_height = self.width, self.height
-    local min_size = { x = 100, y = 50 }
-
-    if protected.resizing == 1 then
-      self.width = math.max(min_size.x, resize_start_width + (resize_start_sx - sx))
-      self.height = math.max(min_size.y, resize_start_height + (resize_start_sy - sy))
-      move_x = start_width - self.width
-      move_y = start_height - self.height
-      self.x = self.x + move_x
-      self.y = self.y + move_y
-    elseif protected.resizing == 2 then
-      self.height = math.max(min_size.y, resize_start_height + (resize_start_sy - sy))
-      move_y = start_height - self.height
-      self.y = self.y + move_y
-    elseif protected.resizing == 3 then
-      self.width = math.max(min_size.x, resize_start_width + (sx - resize_start_sx))
-      self.height = math.max(min_size.y, resize_start_height + (resize_start_sy - sy))
-      move_x = self.width - start_width
-      move_y = start_height - self.height
-      self.y = self.y + move_y
-    elseif protected.resizing == 4 then
-      self.width = math.max(min_size.x, resize_start_width + (sx - resize_start_sx))
-      move_x = self.width - start_width
-    elseif protected.resizing == 5 then
-      self.width = math.max(min_size.x, resize_start_width + (sx - resize_start_sx))
-      self.height = math.max(min_size.y, resize_start_height + (sy - resize_start_sy))
-      move_x = self.width - start_width
-      move_y = self.height - start_height
-    elseif protected.resizing == 6 then
-      self.height = math.max(min_size.y, resize_start_height + (sy - resize_start_sy))
-      move_y = start_height - self.height
-    elseif protected.resizing == 7 then
-      self.width = math.max(min_size.x, resize_start_width + (resize_start_sx - sx))
-      self.height = math.max(min_size.y, resize_start_height + (sy - resize_start_sy))
-      move_x = start_width - self.width
-      move_y = self.height - start_height
-      self.x = self.x + move_x
-    elseif protected.resizing == 8 then
-      self.width = math.max(min_size.x, resize_start_width + (resize_start_sx - sx))
-      move_x = start_width - self.width
-      self.x = self.x + move_x
-    end
-
+    
     if protected.resizing then
-      protected.resize_handle = resize_handles[protected.resizing]
+      local new_width = resize_start_width + math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] + self.granularity / 2 + 0.5)
+      new_width = math.floor(new_width / self.granularity) * self.granularity
+      self.width = math.max(self.min_width, new_width)
+      local new_height = resize_start_height + math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] + self.granularity / 2 + 0.5)
+      new_height = math.floor(new_height / self.granularity) * self.granularity
+      self.height = math.max(self.min_height, new_height)
+      move_x = (self.width - start_width)
+      move_y = (self.height - start_height)
+      self.x = self.x + move_x * math.min(0, protected.resize_handle.move[1])
+      self.y = self.y + move_y * math.min(0, protected.resize_handle.move[2])
       protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * move_x --move_y -- dx
       protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * move_y --dy
     end

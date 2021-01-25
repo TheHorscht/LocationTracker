@@ -220,14 +220,20 @@ end
 -- 	GlobalsSetValue("LocationTracker_prevent_wand_firing", prevent_wand_firing and "1" or "0")
 -- end
 
-local box = EZMouse.Draggable.new(0, 0, 20, 20)
-box:AddEventListener("drag", function(self, dx, dy)
-	self.x = self.x + dx
-	self.y = self.y + dy
-end)
+-- local box = EZMouse.Draggable.new(0, 0, 20, 20)
+-- box:AddEventListener("drag", function(self, dx, dy)
+-- 	self.x = self.x + dx
+-- 	self.y = self.y + dy
+-- end)
 
 -- local resize_handle
-local box2 = EZMouse.Draggable.new(0, 100, 50, 50, true)
+local box2 = EZMouse.Draggable.new({
+	x = 200,
+	y = 100,
+	width = 100,
+	height = 60,
+	resizable = true,
+})
 box2:AddEventListener("drag", function(self, dx, dy)
 	self.x = self.x + dx
 	self.y = self.y + dy
@@ -273,10 +279,10 @@ function OnWorldPreUpdate()
 
 	EZMouse.update()
 
+	-- GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+	-- GuiImage(gui, 9999, box.x, box.y, "mods/LocationTracker/" .. (box.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	GuiImage(gui, 9999, box.x, box.y, "mods/LocationTracker/" .. (box.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
-	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	GuiImage(gui, 10000, box2.x, box2.y, "mods/LocationTracker/" .. (box2.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, box2.width / 10, box2.height / 10)
+	GuiImage(gui, 10000, math.floor(box2.x + 0.5), math.floor(box2.y + 0.5), "mods/LocationTracker/" .. (box2.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, box2.width / 10, box2.height / 10)
 
 	if box2.resize_handle_hovered or box2.resizing then
 		GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
