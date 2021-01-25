@@ -434,13 +434,28 @@ function OnWorldPreUpdate()
 			end
 		end
 		if locked then
+			GuiTooltip(gui, "Unlock", "Unlock the minimap so you can resize it at the corners and move it around by dragging it.")
+		else
+			GuiTooltip(gui, "Lock", "Lock the minimap in place, prevent movement and resizing.")
+		end
+		if locked then
 			-- Show/hide button
 			if GuiImageButton(gui, 30002, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 11), "", "mods/LocationTracker/files/eye_"..(visible and "open" or "closed") ..".png") then
 				visible = not visible
 			end
+			if visible then
+				GuiTooltip(gui, "Hide minimap", "")
+			else
+				GuiTooltip(gui, "Show minimap", "")
+			end
 			-- Fog of war button
 			if GuiImageButton(gui, 30003, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
 				fog_of_war = not fog_of_war
+			end
+			if fog_of_war then
+				GuiTooltip(gui, "Hide fog of war", "")
+			else
+				GuiTooltip(gui, "Show fog of war", "")
 			end
 		end
 	end
