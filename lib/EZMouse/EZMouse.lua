@@ -78,15 +78,17 @@ function Draggable.new(props)
     end
     protected.resize_handle_hovered = false
 
+    local handle_size = 5
+
     local resize_handles = {
-      { x = self.x - 5,              y = self.y - 5,               width = 10,              height = 10,               move = {-1,-1} }, -- top left
-      { x = self.x + 5,              y = self.y - 5,               width = self.width - 10, height = 10,               move = {0,-1}  }, -- top
-      { x = self.x + self.width - 5, y = self.y - 5,               width = 10,              height = 10,               move = {1,-1}  }, -- top right
-      { x = self.x + self.width - 5, y = self.y + 5,               width = 10,              height = self.height - 10, move = {1,0}   }, -- right
-      { x = self.x + self.width - 5, y = self.y + self.height - 5, width = 10,              height = 10,               move = {1,1}   }, -- bottom right
-      { x = self.x + 5,              y = self.y + self.height - 5, width = self.width - 10, height = 10,               move = {0,1}   }, -- bottom
-      { x = self.x - 5,              y = self.y + self.height - 5, width = 10,              height = 10,               move = {-1,1}  }, -- bottom left
-      { x = self.x - 5,              y = self.y + 5,               width = 10,              height = self.height - 10, move = {-1,0}  }, -- left
+      { x = self.x - (handle_size/2),              y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {-1,-1} }, -- top left
+      { x = self.x + (handle_size/2),              y = self.y - (handle_size/2),               width = self.width - handle_size, height = handle_size,               move = {0,-1}  }, -- top
+      { x = self.x + self.width - (handle_size/2), y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {1,-1}  }, -- top right
+      { x = self.x + self.width - (handle_size/2), y = self.y + (handle_size/2),               width = handle_size,              height = self.height - handle_size, move = {1,0}   }, -- right
+      { x = self.x + self.width - (handle_size/2), y = self.y + self.height - (handle_size/2), width = handle_size,              height = handle_size,               move = {1,1}   }, -- bottom right
+      { x = self.x + (handle_size/2),              y = self.y + self.height - (handle_size/2), width = self.width - handle_size, height = handle_size,               move = {0,1}   }, -- bottom
+      { x = self.x - (handle_size/2),              y = self.y + self.height - (handle_size/2), width = handle_size,              height = handle_size,               move = {-1,1}  }, -- bottom left
+      { x = self.x - (handle_size/2),              y = self.y + (handle_size/2),               width = handle_size,              height = self.height - handle_size, move = {-1,0}  }, -- left
     }
     
     if not (protected.resizing or protected.dragging) then
