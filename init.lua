@@ -233,10 +233,11 @@ local box2 = EZMouse.Draggable.new({
 	width = 100,
 	height = 60,
 	resizable = true,
+	resize_granularity = 10,
 })
 box2:AddEventListener("drag", function(self, dx, dy)
-	self.x = self.x + dx
-	self.y = self.y + dy
+	-- self.x = self.x + dx
+	-- self.y = self.y + dy
 	-- resize_handle.x = resize_handle.x + dx
 	-- resize_handle.y = resize_handle.y + dy
 end)
@@ -286,7 +287,7 @@ function OnWorldPreUpdate()
 
 	if box2.resize_handle_hovered or box2.resizing then
 		GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-		GuiImage(gui, 10000, box2.resize_handle.x, box2.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, box2.resize_handle.width / 10, box2.resize_handle.height / 10)
+		GuiImage(gui, 10001, box2.resize_handle.x, box2.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, box2.resize_handle.width / 10, box2.resize_handle.height / 10)
 	end
 
 	if screen_width == nil then

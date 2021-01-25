@@ -29,8 +29,10 @@ function Draggable.new(props)
     height = props.height or 100,
     min_width = props.min_width or 10,
     min_height = props.min_height or 10,
+    draggable = props.draggable == nil and true or not not props.draggable,
+    drag_granularity = props.drag_granularity or 0.1,
     resizable = not not props.resizable,
-    granularity = not not props.granularity or 0.1,
+    resize_granularity = props.resize_granularity or 0.1,
     event_listeners = {
       drag = {},
       drag_start = {},
@@ -110,11 +112,11 @@ function Draggable.new(props)
     local start_width, start_height = self.width, self.height
     
     if protected.resizing then
-      local new_width = resize_start_width + math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] + self.granularity / 2 + 0.5)
-      new_width = math.floor(new_width / self.granularity) * self.granularity
+      local new_width = resize_start_width + math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] + self.resize_granularity / 2 + 0.5)
+      new_width = math.floor(new_width / self.resize_granularity) * self.resize_granularity
       self.width = math.max(self.min_width, new_width)
-      local new_height = resize_start_height + math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] + self.granularity / 2 + 0.5)
-      new_height = math.floor(new_height / self.granularity) * self.granularity
+      local new_height = resize_start_height + math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] + self.resize_granularity / 2 + 0.5)
+      new_height = math.floor(new_height / self.resize_granularity) * self.resize_granularity
       self.height = math.max(self.min_height, new_height)
       move_x = (self.width - start_width)
       move_y = (self.height - start_height)
@@ -140,7 +142,7 @@ function Draggable.new(props)
         prevent_wand_firing = true
       end
   
-      if protected.is_hovered and left_pressed then
+      if self.draggable and protected.is_hovered and left_pressed then
         protected.dragging = true
         fire_event(self, "drag_start", self.x, self.y)
       end
@@ -148,6 +150,8 @@ function Draggable.new(props)
       if protected.dragging then
         if dx ~= 0 or dy ~= 0 then
           fire_event(self, "drag", dx, dy)
+          self.x = self.x + dx
+	        self.y = self.y + dy
         end
       end
     end
