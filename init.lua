@@ -19,8 +19,8 @@ local map_width = 70
 local map_height = 48
 -- local minimap_pos_x = 1009-- + 0.5
 -- local minimap_pos_y = 65-- + 0.5
-local minimap_pos_x = ModSettingGet("LocationTracker_minimap_pos_x") or 490-- + 0.5
-local minimap_pos_y = ModSettingGet("LocationTracker_minimap_pos_y") or 65-- + 0.5
+local minimap_pos_x = 490 -- ModSettingGet("LocationTracker_minimap_pos_x") or 490-- + 0.5
+local minimap_pos_y = 65 -- ModSettingGet("LocationTracker_minimap_pos_y") or 65-- + 0.5
 local biome_map_offset_y = 14
 local seen_areas
 local last_chunk_x, last_chunk_y = 0, 0
@@ -29,8 +29,8 @@ local zoom = 1.5
 local sprite_scale = 3
 local color_data = {}
 local size = {
-	x = ModSettingGet("LocationTracker_minimap_size_x") or 11,
-	y = ModSettingGet("LocationTracker_minimap_size_y") or 11
+	x = 11,--ModSettingGet("LocationTracker_minimap_size_x") or 11,
+	y = 11,--ModSettingGet("LocationTracker_minimap_size_y") or 11
 }
 local block_size = { x = 3, y = 3 }
 local total_size
@@ -43,6 +43,7 @@ local screen_width, screen_height = nil, nil
 local locked = true
 local visible = true
 local fog_of_war = false
+local resize_mode = "zoom"
 local offx, offy = 0, 0
 
 local biome_map_script_paths = {}
@@ -135,142 +136,33 @@ local function get_position()
 	return x, y
 end
 
--- local draggables = {}
--- local function register_draggable(x, y, width, height, callbacks)
--- 	local draggable = { x = x, y = y, width = width, height = height,	_dragging = false,
--- 		callbacks = callbacks or {}
--- 	}
--- 	table.insert(draggables, draggable)
--- 	return draggable
--- end
-
--- local function mouse_loop(gui)
--- 	if not controls_component then
--- 		local entity_name = "LocationTracker_controls_entity"
--- 		local controls_entity = EntityGetWithName(entity_name)
--- 		if controls_entity == 0 then
--- 			controls_entity = EntityCreateNew(entity_name)
--- 		end
--- 		controls_component = EntityAddComponent2(controls_entity, "ControlsComponent")
--- 	end
-	
--- 	local x, y, dx, dy, left_down
--- 	mouse_loop_last_x = mouse_loop_last_x or 0
--- 	mouse_loop_last_y = mouse_loop_last_y or 0
--- 	-- Get whatever state we can directly from the component
--- 	if controls_component then
--- 		x, y = ComponentGetValue2(controls_component, "mMousePosition")
--- 		left_down = ComponentGetValue2(controls_component, "mButtonDownFire")
--- 		left_pressed = ComponentGetValue2(controls_component, "mButtonFrameFire") == GameGetFrameNum()
--- 		-- right_down = ComponentGetValue2(controls_component, "mButtonDownRightClick")
--- 	end
--- 	local virt_x = MagicNumbersGetValue("VIRTUAL_RESOLUTION_X")
--- 	local virt_y = MagicNumbersGetValue("VIRTUAL_RESOLUTION_Y")
--- 	local screen_width, screen_height = GuiGetScreenDimensions(gui)
--- 	local scale_x = virt_x / screen_width
--- 	local scale_y = virt_y / screen_height
--- 	local cx, cy = GameGetCameraPos()
--- 	local sx, sy = (x - cx) / scale_x + screen_width / 2 + 1.5, (y - cy) / scale_y + screen_height / 2
--- 	-- Calculate mMouseDelta ourselves because the native one isn't consistent across all window sizes
--- 	dx, dy = math.floor(sx + 0.5) - math.floor(mouse_loop_last_x + 0.5), math.floor(sy + 0.5) - math.floor(mouse_loop_last_y + 0.5)
--- 	mouse_loop_last_x = sx
--- 	mouse_loop_last_y = sy
--- 	local gui_y = 250
--- 	local function new_line() gui_y = gui_y + 10 end
--- 	GuiText(gui, 40, gui_y, "msx: " .. tostring(math.floor(sx)))
--- 	GuiText(gui, 100, gui_y, "msy: " .. tostring(math.floor(sy)))
--- 	new_line()
--- 	GuiText(gui, 40, gui_y, "box_x: " .. tostring(box_x))
--- 	GuiText(gui, 100, gui_y, "box_y: " .. tostring(box_y))
--- 	new_line()
--- 	GuiText(gui, 40, gui_y, "dx: " .. tostring(dx))
--- 	GuiText(gui, 100, gui_y, "dy: " .. tostring(dy))
--- 	new_line()
--- 	GuiText(gui, 40, gui_y, "virt_x: " .. tostring(virt_x))
--- 	GuiText(gui, 130, gui_y, "virt_y: " .. tostring(virt_y))
--- 	new_line()
--- 	GuiText(gui, 40, gui_y, "screen_width: " .. tostring(screen_width))
--- 	GuiText(gui, 130, gui_y, "screen_height: " .. tostring(screen_height))
-	
--- 	local prevent_wand_firing = false
--- 	for i, draggable in ipairs(draggables) do
--- 		if draggable._dragging and not left_down then
--- 			draggable._dragging = false
--- 		end
--- 		draggable.is_hovered = is_inside_rect(sx, sy, draggable.x, draggable.y, draggable.width, draggable.height)
--- 		local players = EntityGetWithTag("player_unit")
-
--- 		if draggable.is_hovered or draggable._dragging then
--- 			prevent_wand_firing = true
--- 		end
-
--- 		if draggable.is_hovered and left_pressed then
--- 			draggable._dragging = true
--- 		end
-
--- 		if draggable._dragging and draggable.callbacks.on_drag then
--- 			if dx ~= 0 or dy ~= 0 then
--- 				draggable.callbacks.on_drag(draggable, dx, dy)
--- 			end
--- 			box_x = box_x + dx
--- 			box_y = box_y + dy
--- 		end
--- 	end
-	
--- 	GlobalsSetValue("LocationTracker_prevent_wand_firing", prevent_wand_firing and "1" or "0")
--- end
-
--- local box = EZMouse.Draggable.new(0, 0, 20, 20)
--- box:AddEventListener("drag", function(self, dx, dy)
--- 	self.x = self.x + dx
--- 	self.y = self.y + dy
--- end)
-
--- local resize_handle
-local box2 = EZMouse.Draggable.new({
+local widget = EZMouse.Widget.new({
 	x = 200,
 	y = 100,
 	width = 100,
 	height = 60,
 	resizable = true,
-	resize_granularity = 10,
+	enabled = false,
+	resize_granularity = block_size.x * zoom,
 })
-box2:AddEventListener("drag", function(self, dx, dy)
-	-- self.x = self.x + dx
-	-- self.y = self.y + dy
-	-- resize_handle.x = resize_handle.x + dx
-	-- resize_handle.y = resize_handle.y + dy
+widget:AddEventListener("drag", function(self, dx, dy)
+	minimap_pos_x = self.x
+	minimap_pos_y = self.y
 end)
-box2:AddEventListener("drag_start", function(self, x, y)
-	-- GamePrint(string.format("Starting drag at %d, %d", x, y))
+widget:AddEventListener("resize", function(self, move_x, move_y)
+	-- GamePrint("move_x: " .. tostring(move_x) .. ", move_y: " .. tostring(move_y))
+	minimap_pos_x = widget.x
+	minimap_pos_y = widget.y
+	size.x = widget.width / block_size.x / zoom
+	size.y = widget.height / block_size.y / zoom
+	calculate_total_size()
+	-- minimap_pos_y = self.y
 end)
-box2:AddEventListener("drag_end", function(self, x, y)
-	-- GamePrint(string.format("Ending drag at %d, %d", x, y))
-end)
-
--- resize_handle = EZMouse.Draggable.new(50, 150, 5, 5)
--- resize_handle:AddEventListener("drag", function(self, dx, dy)
--- 	self.x = self.x + dx
--- 	self.y = self.y + dy
--- 	box2.width = box2.width + dx
--- 	box2.height = box2.height + dy
--- end)
-
-EZMouse.AddEventListener("mouse_down", function(e)
-	-- GamePrint(tostring(e.button) .." down at " .. tostring(e.x) .. ", " .. tostring(e.y))
-	-- GameCreateParticle("poo", e.world_x, e.world_y, 1, -50, 0, true)
-end)
-
-EZMouse.AddEventListener("mouse_up", function(e)
-	-- GamePrint(tostring(e.button) .." up at " .. tostring(e.x) .. ", " .. tostring(e.y))
-end)
-
-EZMouse.AddEventListener("mouse_move", function(e)
-	if EZMouse.left_down then
-		-- GamePrint("Mouse move to " .. tostring(e.x) .. ", " .. tostring(e.y))
-		-- GameCreateParticle("poo", e.world_x, e.world_y, 10, e.vx * 10, e.vy * 10, true)
-	end
-end)
+-- widget:AddEventListener("drag_start", function(self, x, y) end)
+-- widget:AddEventListener("drag_end", function(self, x, y) end)
+-- EZMouse.AddEventListener("mouse_down", function(e) end)
+-- EZMouse.AddEventListener("mouse_up", function(e) end)
+-- EZMouse.AddEventListener("mouse_move", function(e) end)
 
 function OnWorldPreUpdate()
 	-- dofile("mods/LocationTracker/files/gui.lua")
@@ -282,13 +174,13 @@ function OnWorldPreUpdate()
 
 	-- GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 	-- GuiImage(gui, 9999, box.x, box.y, "mods/LocationTracker/" .. (box.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
-	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	GuiImage(gui, 10000, math.floor(box2.x + 0.5), math.floor(box2.y + 0.5), "mods/LocationTracker/" .. (box2.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, box2.width / 10, box2.height / 10)
+	-- GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+	-- GuiImage(gui, 10000, math.floor(widget.x + 0.5), math.floor(widget.y + 0.5), "mods/LocationTracker/" .. (widget.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, widget.width / 10, widget.height / 10)
 
-	if box2.resize_handle_hovered or box2.resizing then
-		GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-		GuiImage(gui, 10001, box2.resize_handle.x, box2.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, box2.resize_handle.width / 10, box2.resize_handle.height / 10)
-	end
+	-- if widget.resize_handle_hovered or widget.resizing then
+	-- 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+	-- 	GuiImage(gui, 10001, widget.resize_handle.x, widget.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, widget.resize_handle.width / 10, widget.resize_handle.height / 10)
+	-- end
 
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)
@@ -353,6 +245,7 @@ function OnWorldPreUpdate()
 					local idx = x+y*size.x
 					color_data[idx] = get_color_data(cx, cy, x-math.floor(size.x/2), y-math.floor(size.y/2))
 					GuiColorSetForNextWidget(gui, color_data[idx].color.r, color_data[idx].color.g, color_data[idx].color.b, 1)
+					GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 					-- GuiImage(gui, 10010 + idx+1, math.floor(offx) + math.floor(scr_half_w - tot_size_half_x) + x*zoom_block_x, math.floor(offy) + math.floor(scr_half_h - tot_size_half_y) + y*zoom_block_y, "mods/LocationTracker/a.png", 1, zoom, 0)
 					-- GuiImage( gui, id:int, x:number, y:number, sprite_filename:string, alpha:number, scale:number, rotation:number, scale_y:number = 0.0, rect_animation_playback_type:int = GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide, rect_animation_name:string = "" ) ['scale' will be used for 'scale_y' if 'scale_y' equals 0.]
 					GuiImage(
@@ -374,6 +267,7 @@ function OnWorldPreUpdate()
 			end
 			-- Border
 			GuiZSetForNextWidget(gui, -999)
+			GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 			GuiImageNinePiece(gui, 40000, offx + minimap_pos_x, offy + minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
 			-- Draw the dot in the center
 			local dot_scale = 0.5
@@ -388,40 +282,14 @@ function OnWorldPreUpdate()
 				dot_scale -- scale:number
 			)
 		end
-		-- GuiSlider( gui, id:int, x:number, y:number, text:string, value:number, value_min:number, value_max:number, value_default:number, value_display_multiplier:number, value_formatting:string, width:number ) -> new_value:number [This is not intended to be outside mod settings menu, and might bug elsewhere.]
-		if not locked then
-			GuiOptionsAddForNextWidget(gui, GUI_OPTION.IsDraggable)
-			local tw, th = GuiGetTextDimensions(gui, "DRAG")
-			local start_x = offx + minimap_pos_x + total_size.x/2 - math.floor(tw/2)
-			local start_y = offy + minimap_pos_y - th - 2
-			GuiButton(gui, 4999, start_x, start_y, "DRAG")
-			local clicked, right_clicked, hovered, xx, yy, width, height, draw_x, draw_y = GuiGetPreviousWidgetInfo(gui)
-			if draw_x ~= start_x or draw_y ~= start_y then
-				offx = math.floor(offx + (draw_x - start_x))
-				offy = math.floor(offy + (draw_y - start_y))
-				offx = math.max(5 - minimap_pos_x, math.min(screen_width - (total_size.x + 5) - minimap_pos_x, offx))
-				offy = math.max(5 - minimap_pos_y, math.min(screen_height - (total_size.y + 5) - minimap_pos_y, offy))
-			end
-	
-			local start_x = offx + minimap_pos_x + total_size.x
-			local start_y = offy + minimap_pos_y + total_size.y
-			GuiOptionsAddForNextWidget(gui, GUI_OPTION.IsDraggable)
-			GuiButton(gui, 5000, start_x, start_y, "  ")
-			local clicked, right_clicked, hovered, xx, yy, width, height, draw_x, draw_y = GuiGetPreviousWidgetInfo(gui)
-			GuiImage(gui, 5001, xx, yy, "mods/LocationTracker/files/resize_handle.png", 1, 1, 0)
-			local dx = math.floor((xx - start_x) / zoom / 5)
-			local dy = math.floor((yy - start_y) / zoom / 5)
-			local old_x = size.x
-			local old_y = size.y
-			size.x = math.max(3, size.x + dx)
-			size.y = math.max(3, size.y + dy)
-			if size.x ~= old_x or size.y ~= old_y then
-				calculate_total_size()
-			end
-		end
 		-- Lock button
 		if GuiImageButton(gui, 30001, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
 			locked = not locked
+			widget.x = minimap_pos_x
+			widget.y = minimap_pos_y
+			widget.width = total_size.x
+			widget.height = total_size.y
+			widget.enabled = not locked
 			-- Save settings when locking
 			if locked then
 				minimap_pos_x = minimap_pos_x + offx
@@ -457,18 +325,31 @@ function OnWorldPreUpdate()
 			else
 				GuiTooltip(gui, "Show fog of war", "")
 			end
+		else
+			local icon = "resize_mode"
+			if resize_mode == "zoom" then
+				icon = "magnifying_glass"
+			end
+			if GuiImageButton(gui, 30004, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 11), "", "mods/LocationTracker/files/" .. icon .. ".png") then
+				resize_mode = resize_mode == "zoom" and "resolution" or "zoom"
+			end
+			if resize_mode == "zoom" then
+				GuiTooltip(gui, "Switch to resolution mode", "")
+			else
+				GuiTooltip(gui, "Switch to zoom mode", "")
+			end
 		end
 	end
 	if not locked then
-		GuiBeginAutoBox(gui)
-		-- GuiEndAutoBoxNinePiece(gui, margin:number = 5, size_min_x:number = 0, size_min_y:number = 0, mirrorize_over_x_axis:bool = false, x_axis:number = 0, sprite_filename:string = "data/ui_gfx/decorations/9piece0_gray.png", sprite_highlight_filename:string = "data/ui_gfx/decorations/9piece0_gray.png" )
 		local old_zoom = zoom
-		zoom = GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " $0", 300)
+		-- zoom = GuiSlider(gui, 666, minimap_pos_x, minimap_pos_y + total_size.y + 10, "Zoom", zoom, 0.5, 5, 1, 1, " $0", total_size.x)
 		-- zoom = math.floor(GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300) * 2) / 2
 		if zoom ~= old_zoom then
+			widget.resize_granularity = block_size.x * zoom
 			calculate_total_size()
+			widget.width = total_size.x
+			widget.height = total_size.y
 		end
-		GuiEndAutoBoxNinePiece(gui)
 	end
 end
 

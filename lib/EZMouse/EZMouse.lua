@@ -3,12 +3,12 @@ local function is_inside_rect(x, y, rect_x, rect_y, width, height)
 end
 
 -- local draggables = setmetatable({}, { __mode = "v" })
-local Draggable = {
+local Widget = {
   instances = setmetatable({}, { __mode = "v" }),
 }
 
--- function Draggable.new(x, y, width, height, resizable)
-function Draggable.new(props)
+-- function Widget.new(x, y, width, height, resizable)
+function Widget.new(props)
   if type(props) ~= "table" then
     error("'props' needs to be a table.", 2)
   end
@@ -33,10 +33,12 @@ function Draggable.new(props)
     drag_granularity = props.drag_granularity or 0.1,
     resizable = not not props.resizable,
     resize_granularity = props.resize_granularity or 0.1,
+    enabled = props.enabled == nil and true or not not props.enabled,
     event_listeners = {
       drag = {},
       drag_start = {},
       drag_end = {},
+      resize = {},
       resize_start = {},
       resize_end = {},
     }
@@ -62,7 +64,7 @@ function Draggable.new(props)
     error(string.format("min_height(%d) needs to be smaller than height(%d).", o.min_height, o.height), 2)
   end
 
-  table.insert(Draggable.instances, o)
+  table.insert(Widget.instances, o)
   
   local function fire_event(self, name, ...)
     for i, listener in ipairs(self.event_listeners[name]) do
@@ -71,6 +73,7 @@ function Draggable.new(props)
   end
 
   o.Update = function(self, sx, sy, dx, dy, left_down, left_pressed)
+    if not self.enabled then return false end
     local prevent_wand_firing = false
     
     if protected.resizing and not left_down then
@@ -78,7 +81,7 @@ function Draggable.new(props)
     end
     protected.resize_handle_hovered = false
 
-    local handle_size = 5
+    local handle_size = 6
 
     local resize_handles = {
       { x = self.x - (handle_size/2),              y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {-1,-1} }, -- top left
@@ -124,6 +127,9 @@ function Draggable.new(props)
       move_y = (self.height - start_height)
       self.x = self.x + move_x * math.min(0, protected.resize_handle.move[1])
       self.y = self.y + move_y * math.min(0, protected.resize_handle.move[2])
+      if math.abs(move_x) > 0 or math.abs(move_y) > 0 then
+        fire_event(self, "resize", move_x, move_y)
+      end
       protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * move_x --move_y -- dx
       protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * move_y --dy
     end
@@ -151,9 +157,9 @@ function Draggable.new(props)
   
       if protected.dragging then
         if dx ~= 0 or dy ~= 0 then
-          fire_event(self, "drag", dx, dy)
           self.x = self.x + dx
 	        self.y = self.y + dy
+          fire_event(self, "drag", dx, dy)
         end
       end
     end
@@ -264,7 +270,7 @@ local function update(gui) -- EZMouse_gui
     dx, dy = math.floor(sx + 0.5) - math.floor(mouse_loop_last_sx + 0.5), math.floor(sy + 0.5) - math.floor(mouse_loop_last_sy + 0.5)
     
     local prevent_wand_firing = false
-    for i, draggable in ipairs(Draggable.instances) do
+    for i, draggable in ipairs(Widget.instances) do
       prevent_wand_firing = draggable:Update(sx, sy, dx, dy, left_down, left_pressed) or prevent_wand_firing
     end
     
@@ -290,7 +296,7 @@ local function update(gui) -- EZMouse_gui
 end
 
 return setmetatable({
-  Draggable = Draggable,
+  Widget = Widget,
   update = update,
   AddEventListener = AddEventListener,
   RemoveEventListener = RemoveEventListener,
