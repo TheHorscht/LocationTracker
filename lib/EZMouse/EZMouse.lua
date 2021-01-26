@@ -33,6 +33,7 @@ function Widget.new(props)
     drag_granularity = props.drag_granularity or 0.1,
     resizable = not not props.resizable,
     resize_granularity = props.resize_granularity or 0.1,
+    resize_symmetrical = not not props.resize_symmetrical,
     enabled = props.enabled == nil and true or not not props.enabled,
     event_listeners = {
       drag = {},
@@ -117,16 +118,16 @@ function Widget.new(props)
     local start_width, start_height = self.width, self.height
     
     if protected.resizing then
-      local new_width = resize_start_width + math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] + self.resize_granularity / 2 + 0.5)
+      local new_width = resize_start_width + math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
       new_width = math.floor(new_width / self.resize_granularity) * self.resize_granularity
       self.width = math.max(self.min_width, new_width)
-      local new_height = resize_start_height + math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] + self.resize_granularity / 2 + 0.5)
+      local new_height = resize_start_height + math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
       new_height = math.floor(new_height / self.resize_granularity) * self.resize_granularity
       self.height = math.max(self.min_height, new_height)
-      move_x = (self.width - start_width)
-      move_y = (self.height - start_height)
-      self.x = self.x + move_x * math.min(0, protected.resize_handle.move[1])
-      self.y = self.y + move_y * math.min(0, protected.resize_handle.move[2])
+      move_x = (self.width - start_width) * (self.resize_symmetrical and 0.5 or 1)
+      move_y = (self.height - start_height) * (self.resize_symmetrical and 0.5 or 1)
+      self.x = self.x + move_x * math.min(self.resize_symmetrical and -1 or 0, protected.resize_handle.move[1])
+      self.y = self.y + move_y * math.min(self.resize_symmetrical and -1 or 0, protected.resize_handle.move[2])
       if math.abs(move_x) > 0 or math.abs(move_y) > 0 then
         fire_event(self, "resize", move_x, move_y)
       end
@@ -188,6 +189,16 @@ function Widget.new(props)
       end
     end
     error("Cannot remove a listener that was never registered.", 2)
+  end
+
+  o.DebugDraw = function(self, gui)
+    GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+    GuiImage(gui, 10000, math.floor(self.x + 0.5), math.floor(self.y + 0.5), "mods/LocationTracker/lib/EZMouse/" .. (self.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, self.width / 10, self.height / 10)
+
+    if self.resize_handle_hovered or self.resizing then
+      GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+      GuiImage(gui, 10001, self.resize_handle.x, self.resize_handle.y, "mods/LocationTracker/lib/EZMouse/green_square_10x10.png", 1, self.resize_handle.width / 10, self.resize_handle.height / 10)
+    end
   end
 
 	return o

@@ -158,6 +158,14 @@ widget:AddEventListener("resize", function(self, move_x, move_y)
 	calculate_total_size()
 	-- minimap_pos_y = self.y
 end)
+local widget2 = EZMouse.Widget.new({
+	x = 100,
+	y = 200,
+	width = 50,
+	height = 50,
+	resizable = true,
+	resize_symmetrical = true,
+})
 -- widget:AddEventListener("drag_start", function(self, x, y) end)
 -- widget:AddEventListener("drag_end", function(self, x, y) end)
 -- EZMouse.AddEventListener("mouse_down", function(e) end)
@@ -181,6 +189,8 @@ function OnWorldPreUpdate()
 	-- 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 	-- 	GuiImage(gui, 10001, widget.resize_handle.x, widget.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, widget.resize_handle.width / 10, widget.resize_handle.height / 10)
 	-- end
+
+	widget2:DebugDraw(gui)
 
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)
