@@ -43,8 +43,7 @@ local screen_width, screen_height = nil, nil
 local locked = true
 local visible = true
 local fog_of_war = false
-local resize_mode = "zoom"
-local offx, offy = 0, 0
+local resize_mode = "resolution"
 
 local biome_map_script_paths = {}
 for i, mod_id in ipairs(ModGetActiveModIDs()) do
@@ -99,6 +98,10 @@ if biomes_all_content then
 	biome_map_offset_y = xml.attr.biome_offset_y
 end
 
+local function truncate_float(num)
+  return num + (2^52 + 2^51) - (2^52 + 2^51)
+end
+
 local function get_chunk_coords(x, y)
 	return math.floor(x / 512), math.floor(y / 512)
 end
@@ -150,22 +153,35 @@ widget:AddEventListener("drag", function(self, dx, dy)
 	minimap_pos_y = self.y
 end)
 widget:AddEventListener("resize", function(self, move_x, move_y)
-	-- GamePrint("move_x: " .. tostring(move_x) .. ", move_y: " .. tostring(move_y))
-	minimap_pos_x = widget.x
-	minimap_pos_y = widget.y
-	size.x = widget.width / block_size.x / zoom
-	size.y = widget.height / block_size.y / zoom
+	minimap_pos_x = self.x
+	minimap_pos_y = self.y
+	if resize_mode == "zoom" then
+		local min_size = 5
+		self.min_width = min_size
+		self.min_height = min_size
+		zoom = self.width / block_size.x / size.x
+	else
+		size.x = math.floor(self.width / block_size.x / zoom + 0.5)
+		size.y = math.floor(self.height / block_size.y / zoom + 0.5)
+		local min_size = block_size.x * zoom
+		self.min_width = min_size
+		self.min_height = min_size
+	end
 	calculate_total_size()
-	-- minimap_pos_y = self.y
 end)
 local widget2 = EZMouse.Widget.new({
 	x = 100,
-	y = 200,
-	width = 50,
+	y = 100,
+	width = 100,
 	height = 50,
+	min_width = 50,
+	min_height = 50,
 	resizable = true,
-	resize_symmetrical = true,
+	resize_uniform = true,
+	-- resize_symmetrical = true,
+	resize_granularity = 10,
 })
+
 -- widget:AddEventListener("drag_start", function(self, x, y) end)
 -- widget:AddEventListener("drag_end", function(self, x, y) end)
 -- EZMouse.AddEventListener("mouse_down", function(e) end)
@@ -190,7 +206,8 @@ function OnWorldPreUpdate()
 	-- 	GuiImage(gui, 10001, widget.resize_handle.x, widget.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, widget.resize_handle.width / 10, widget.resize_handle.height / 10)
 	-- end
 
-	widget2:DebugDraw(gui)
+	-- widget:DebugDraw(gui)
+	-- widget2:DebugDraw(gui)
 
 	if screen_width == nil then
 		screen_width, screen_height = GuiGetScreenDimensions(gui)
@@ -256,13 +273,11 @@ function OnWorldPreUpdate()
 					color_data[idx] = get_color_data(cx, cy, x-math.floor(size.x/2), y-math.floor(size.y/2))
 					GuiColorSetForNextWidget(gui, color_data[idx].color.r, color_data[idx].color.g, color_data[idx].color.b, 1)
 					GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-					-- GuiImage(gui, 10010 + idx+1, math.floor(offx) + math.floor(scr_half_w - tot_size_half_x) + x*zoom_block_x, math.floor(offy) + math.floor(scr_half_h - tot_size_half_y) + y*zoom_block_y, "mods/LocationTracker/a.png", 1, zoom, 0)
-					-- GuiImage( gui, id:int, x:number, y:number, sprite_filename:string, alpha:number, scale:number, rotation:number, scale_y:number = 0.0, rect_animation_playback_type:int = GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide, rect_animation_name:string = "" ) ['scale' will be used for 'scale_y' if 'scale_y' equals 0.]
 					GuiImage(
 						gui,
 						10010 + idx, -- id:int
-						offx + minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
-						offy + minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
+						minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
+						minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
 						-- math.floor(screen_width/2 - total_size.x/2) + (x+color_data[idx].offset.x)*zoom*block_size.x, -- x:number
 						-- math.floor(screen_height/2 - total_size.y/2) + (y+color_data[idx].offset.y)*zoom*block_size.y, -- y:number
 						"mods/LocationTracker/files/color_sprites.xml", -- sprite_filename:string
@@ -278,22 +293,29 @@ function OnWorldPreUpdate()
 			-- Border
 			GuiZSetForNextWidget(gui, -999)
 			GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-			GuiImageNinePiece(gui, 40000, offx + minimap_pos_x, offy + minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
+			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
 			-- Draw the dot in the center
-			local dot_scale = 0.5
-			GuiZSetForNextWidget(gui, -999)
-			GuiImage(
-				gui,
-				25000, -- id:int
-				offx + minimap_pos_x + math.floor(total_size.x/2) + (sub_x-1)*zoom, -- x:number
-				offy + minimap_pos_y + math.floor(total_size.y/2) + (sub_y-1)*zoom, -- y:number
-				"mods/LocationTracker/files/you_are_here.png", -- sprite_filename:string
-				1, -- alpha:number
-				dot_scale -- scale:number
-			)
+			local blink_delay = 30
+			if GameGetFrameNum() % (blink_delay * 2) >= blink_delay then
+				GuiZSetForNextWidget(gui, -999)
+				GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+				GuiColorSetForNextWidget(gui, 1, 0, 0, 1)
+				GuiImage(
+					gui,
+					25000, -- id:int
+					minimap_pos_x + math.floor(size.x/2) * block_size.x * zoom + (sub_x)*zoom, -- x:number
+					minimap_pos_y + math.floor(size.y/2) * block_size.x * zoom + (sub_y)*zoom, -- y:number
+					"mods/LocationTracker/a.png", -- sprite_filename:string
+					1, -- alpha:number
+					block_size.x * zoom / 9 -- scale:number
+				)
+			end
+		end
+		if GuiButton(gui, 55656, 0, 200, "doody") then
+			doody = not doody
 		end
 		-- Lock button
-		if GuiImageButton(gui, 30001, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
+		if GuiImageButton(gui, 30001, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
 			locked = not locked
 			widget.x = minimap_pos_x
 			widget.y = minimap_pos_y
@@ -302,9 +324,6 @@ function OnWorldPreUpdate()
 			widget.enabled = not locked
 			-- Save settings when locking
 			if locked then
-				minimap_pos_x = minimap_pos_x + offx
-				minimap_pos_y = minimap_pos_y + offy
-				offx, offy = 0, 0
 				ModSettingSet("LocationTracker_minimap_pos_x", minimap_pos_x)
 				ModSettingSet("LocationTracker_minimap_pos_y", minimap_pos_y)
 				ModSettingSet("LocationTracker_minimap_size_x", size.x)
@@ -318,7 +337,7 @@ function OnWorldPreUpdate()
 		end
 		if locked then
 			-- Show/hide button
-			if GuiImageButton(gui, 30002, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 11), "", "mods/LocationTracker/files/eye_"..(visible and "open" or "closed") ..".png") then
+			if GuiImageButton(gui, 30002, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 11), "", "mods/LocationTracker/files/eye_"..(visible and "open" or "closed") ..".png") then
 				visible = not visible
 			end
 			if visible then
@@ -327,7 +346,7 @@ function OnWorldPreUpdate()
 				GuiTooltip(gui, "Show minimap", "")
 			end
 			-- Fog of war button
-			if GuiImageButton(gui, 30003, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
+			if GuiImageButton(gui, 30003, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
 				fog_of_war = not fog_of_war
 			end
 			if fog_of_war then
@@ -340,25 +359,21 @@ function OnWorldPreUpdate()
 			if resize_mode == "zoom" then
 				icon = "magnifying_glass"
 			end
-			if GuiImageButton(gui, 30004, math.floor(offx + minimap_pos_x + total_size.x + 5), math.floor(offy + minimap_pos_y + 11), "", "mods/LocationTracker/files/" .. icon .. ".png") then
+			if GuiImageButton(gui, 30004, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 11), "", "mods/LocationTracker/files/" .. icon .. ".png") then
 				resize_mode = resize_mode == "zoom" and "resolution" or "zoom"
+				if resize_mode == "zoom" then
+					widget.resize_granularity = 0.1
+					widget.resize_uniform = true
+				else
+					widget.resize_granularity = block_size.x * zoom
+					widget.resize_uniform = false
+				end
 			end
 			if resize_mode == "zoom" then
 				GuiTooltip(gui, "Switch to resolution mode", "")
 			else
 				GuiTooltip(gui, "Switch to zoom mode", "")
 			end
-		end
-	end
-	if not locked then
-		local old_zoom = zoom
-		-- zoom = GuiSlider(gui, 666, minimap_pos_x, minimap_pos_y + total_size.y + 10, "Zoom", zoom, 0.5, 5, 1, 1, " $0", total_size.x)
-		-- zoom = math.floor(GuiSlider(gui, 666, 50, 200, "Zoom", zoom, 0.5, 5, 1, 1, " ", 300) * 2) / 2
-		if zoom ~= old_zoom then
-			widget.resize_granularity = block_size.x * zoom
-			calculate_total_size()
-			widget.width = total_size.x
-			widget.height = total_size.y
 		end
 	end
 end

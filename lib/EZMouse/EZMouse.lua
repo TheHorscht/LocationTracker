@@ -34,6 +34,7 @@ function Widget.new(props)
     resizable = not not props.resizable,
     resize_granularity = props.resize_granularity or 0.1,
     resize_symmetrical = not not props.resize_symmetrical,
+    resize_uniform = not not props.resize_uniform,
     enabled = props.enabled == nil and true or not not props.enabled,
     event_listeners = {
       drag = {},
@@ -84,16 +85,20 @@ function Widget.new(props)
 
     local handle_size = 6
 
-    local resize_handles = {
-      { x = self.x - (handle_size/2),              y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {-1,-1} }, -- top left
-      { x = self.x + (handle_size/2),              y = self.y - (handle_size/2),               width = self.width - handle_size, height = handle_size,               move = {0,-1}  }, -- top
-      { x = self.x + self.width - (handle_size/2), y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {1,-1}  }, -- top right
-      { x = self.x + self.width - (handle_size/2), y = self.y + (handle_size/2),               width = handle_size,              height = self.height - handle_size, move = {1,0}   }, -- right
-      { x = self.x + self.width - (handle_size/2), y = self.y + self.height - (handle_size/2), width = handle_size,              height = handle_size,               move = {1,1}   }, -- bottom right
-      { x = self.x + (handle_size/2),              y = self.y + self.height - (handle_size/2), width = self.width - handle_size, height = handle_size,               move = {0,1}   }, -- bottom
-      { x = self.x - (handle_size/2),              y = self.y + self.height - (handle_size/2), width = handle_size,              height = handle_size,               move = {-1,1}  }, -- bottom left
-      { x = self.x - (handle_size/2),              y = self.y + (handle_size/2),               width = handle_size,              height = self.height - handle_size, move = {-1,0}  }, -- left
-    }
+    local function calculate_handle_props()
+      return {
+        { x = self.x - (handle_size/2),              y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {-1,-1} }, -- top left
+        { x = self.x + (handle_size/2),              y = self.y - (handle_size/2),               width = self.width - handle_size, height = handle_size,               move = {0,-1}  }, -- top
+        { x = self.x + self.width - (handle_size/2), y = self.y - (handle_size/2),               width = handle_size,              height = handle_size,               move = {1,-1}  }, -- top right
+        { x = self.x + self.width - (handle_size/2), y = self.y + (handle_size/2),               width = handle_size,              height = self.height - handle_size, move = {1,0}   }, -- right
+        { x = self.x + self.width - (handle_size/2), y = self.y + self.height - (handle_size/2), width = handle_size,              height = handle_size,               move = {1,1}   }, -- bottom right
+        { x = self.x + (handle_size/2),              y = self.y + self.height - (handle_size/2), width = self.width - handle_size, height = handle_size,               move = {0,1}   }, -- bottom
+        { x = self.x - (handle_size/2),              y = self.y + self.height - (handle_size/2), width = handle_size,              height = handle_size,               move = {-1,1}  }, -- bottom left
+        { x = self.x - (handle_size/2),              y = self.y + (handle_size/2),               width = handle_size,              height = self.height - handle_size, move = {-1,0}  }, -- left
+      }
+    end
+
+    local resize_handles = calculate_handle_props()
     
     if not (protected.resizing or protected.dragging) then
       for i, handle in ipairs(resize_handles) do
@@ -105,8 +110,11 @@ function Widget.new(props)
             fire_event(self, "resize_start", i)
             resize_start_sx = sx
             resize_start_sy = sy
+            resize_start_x = self.x
+            resize_start_y = self.y
             resize_start_width = self.width
             resize_start_height = self.height
+            aspect_ratio = self.width / self.height
           end
           break
         end
@@ -118,21 +126,43 @@ function Widget.new(props)
     local start_width, start_height = self.width, self.height
     
     if protected.resizing then
-      local new_width = resize_start_width + math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
+      local width_change = math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
+      local new_width = resize_start_width + width_change
       new_width = math.floor(new_width / self.resize_granularity) * self.resize_granularity
-      self.width = math.max(self.min_width, new_width)
-      local new_height = resize_start_height + math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
+      
+      local height_change = math.floor((resize_start_sy - sy) * -protected.resize_handle.move[2] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
+      local new_height = resize_start_height + height_change
       new_height = math.floor(new_height / self.resize_granularity) * self.resize_granularity
+      -- move_ will be positive if moving outwards and negative when moving inwards
+      local has_moved = math.abs(move_x) > 0 or math.abs(move_y) > 0
+      if self.resize_uniform then
+        -- print("width_change / aspect_ratio: " .. tostring(width_change / aspect_ratio) .. ", height_change * aspect_ratio: " .. tostring(height_change * aspect_ratio))
+        -- scale_if_x = (sx - resize_start_x) / resize_start_width -- rightside.x - sx
+        local scale_x = (resize_start_x + resize_start_width * math.max(0, -protected.resize_handle.move[1]) - sx) * -protected.resize_handle.move[1] / resize_start_width
+        local scale_y = (resize_start_y + resize_start_height * math.max(0, -protected.resize_handle.move[2]) - sy) * -protected.resize_handle.move[2] / resize_start_height
+        local scale = math.max(scale_x, scale_y)
+        -- local scale_granularity = self.resize_granularity
+        -- scale = math.floor(scale / scale_granularity) * scale_granularity
+        local scale_min_x = self.min_width / resize_start_width
+        local scale_min_y = self.min_height / resize_start_height
+        local scale_min = math.max(scale_min_x, scale_min_y)
+        scale = math.max(scale_min, scale)
+        new_width = resize_start_width * scale
+        new_height = resize_start_height * scale
+      end
+      self.width = math.max(self.min_width, new_width)
       self.height = math.max(self.min_height, new_height)
       move_x = (self.width - start_width) * (self.resize_symmetrical and 0.5 or 1)
       move_y = (self.height - start_height) * (self.resize_symmetrical and 0.5 or 1)
       self.x = self.x + move_x * math.min(self.resize_symmetrical and -1 or 0, protected.resize_handle.move[1])
       self.y = self.y + move_y * math.min(self.resize_symmetrical and -1 or 0, protected.resize_handle.move[2])
-      if math.abs(move_x) > 0 or math.abs(move_y) > 0 then
+      resize_handles = calculate_handle_props()
+      protected.resize_handle = resize_handles[protected.resizing]
+      if has_moved then
         fire_event(self, "resize", move_x, move_y)
       end
-      protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * move_x --move_y -- dx
-      protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * move_y --dy
+      -- protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * move_x
+      -- protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * move_y
     end
 
     if protected.resize_handle_hovered or protected.resizing then
