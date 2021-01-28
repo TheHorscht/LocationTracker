@@ -136,8 +136,6 @@ function Widget.new(props)
       -- move_ will be positive if moving outwards and negative when moving inwards
       local has_moved = math.abs(move_x) > 0 or math.abs(move_y) > 0
       if self.resize_uniform then
-        -- print("width_change / aspect_ratio: " .. tostring(width_change / aspect_ratio) .. ", height_change * aspect_ratio: " .. tostring(height_change * aspect_ratio))
-        -- scale_if_x = (sx - resize_start_x) / resize_start_width -- rightside.x - sx
         local scale_x = (resize_start_x + resize_start_width * math.max(0, -protected.resize_handle.move[1]) - sx) * -protected.resize_handle.move[1] / resize_start_width
         local scale_y = (resize_start_y + resize_start_height * math.max(0, -protected.resize_handle.move[2]) - sy) * -protected.resize_handle.move[2] / resize_start_height
         local scale = math.max(scale_x, scale_y)

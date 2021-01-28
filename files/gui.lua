@@ -82,7 +82,6 @@ if GlobalsGetValue("LocationTracker_show_full_map", "0") == "1" and map then
   GuiOptionsAddForNextWidget(gui, GUI_OPTION.NoPositionTween)
   if GuiImageButton(gui, 10003, math.floor(offx + scr_half_w + tot_size_half_x + 5), math.floor(offy + scr_half_h - tot_size_half_y + 21), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
     fog_of_war = not fog_of_war
-    print(tostring(fog_of_war))
   end
   -- Border
   GuiImageNinePiece(gui, 10004, math.floor(offx + screen_width/2 - total_size.x/2), math.floor(offy + screen_height/2 - total_size.y/2), total_size.x, total_size.y, 1, "mods/LocationTracker/files/border.png")

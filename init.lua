@@ -6,6 +6,8 @@ local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
 local EZMouse = dofile_once("mods/LocationTracker/lib/EZMouse/EZMouse.lua")
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/lib/EZMouse/gun_append.lua")
 
+local defaults = dofile_once("mods/LocationTracker/settings_defaults.lua")
+
 function split_string(inputstr, sep)
   sep = sep or "%s"
   local t= {}
@@ -17,34 +19,46 @@ end
 
 local map_width = 70
 local map_height = 48
--- local minimap_pos_x = 1009-- + 0.5
--- local minimap_pos_y = 65-- + 0.5
-local minimap_pos_x = 490 -- ModSettingGet("LocationTracker_minimap_pos_x") or 490-- + 0.5
-local minimap_pos_y = 65 -- ModSettingGet("LocationTracker_minimap_pos_y") or 65-- + 0.5
+local minimap_pos_x
+local minimap_pos_y
 local biome_map_offset_y = 14
 local seen_areas
-local last_chunk_x, last_chunk_y = 0, 0
 local map
-local zoom = 1.5
+local zoom
 local sprite_scale = 3
 local color_data = {}
-local size = {
-	x = 11,--ModSettingGet("LocationTracker_minimap_size_x") or 11,
-	y = 11,--ModSettingGet("LocationTracker_minimap_size_y") or 11
-}
+local size = {}
 local block_size = { x = 3, y = 3 }
 local total_size
+
 local function calculate_total_size()
 	total_size = { x = size.x * block_size.x * zoom, y = size.y * block_size.y * zoom }
 end
-calculate_total_size()
-local screen_width, screen_height = nil, nil
 
 local locked = true
 local visible = true
-local fog_of_war = false
+local fog_of_war = true
 local resize_mode = "resolution"
 
+local function initialize_defaults()
+	if ModSettingGet("LocationTracker_pos_x") then
+		minimap_pos_x = ModSettingGet("LocationTracker_pos_x")
+		minimap_pos_y = ModSettingGet("LocationTracker_pos_y")
+	else
+		dummy_gui = dummy_gui or GuiCreate()
+		GuiStartFrame(dummy_gui)
+		screen_width, screen_height = GuiGetScreenDimensions(dummy_gui)
+		minimap_pos_x = screen_width * defaults.pos_x
+		minimap_pos_y = screen_height * defaults.pos_y
+	end
+	size.x = ModSettingGet("LocationTracker_size_x") or defaults.size_x
+	size.y = ModSettingGet("LocationTracker_size_y") or defaults.size_y
+	zoom = ModSettingGet("LocationTracker_zoom") or defaults.zoom
+	calculate_total_size()
+end
+initialize_defaults()
+
+-- Try to find other mods' map script for appending to it
 local biome_map_script_paths = {}
 for i, mod_id in ipairs(ModGetActiveModIDs()) do
 	local init_content = ModTextFileGetContent("mods/" .. mod_id .. "/init.lua")
@@ -182,11 +196,11 @@ local widget2 = EZMouse.Widget.new({
 	resize_granularity = 10,
 })
 
--- widget:AddEventListener("drag_start", function(self, x, y) end)
--- widget:AddEventListener("drag_end", function(self, x, y) end)
--- EZMouse.AddEventListener("mouse_down", function(e) end)
--- EZMouse.AddEventListener("mouse_up", function(e) end)
--- EZMouse.AddEventListener("mouse_move", function(e) end)
+-- Save information about when the game was done loading
+local frame_world_initialized
+function OnWorldInitialized()
+	frame_world_initialized = GameGetFrameNum()
+end
 
 function OnWorldPreUpdate()
 	-- dofile("mods/LocationTracker/files/gui.lua")
@@ -196,22 +210,6 @@ function OnWorldPreUpdate()
 
 	EZMouse.update()
 
-	-- GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	-- GuiImage(gui, 9999, box.x, box.y, "mods/LocationTracker/" .. (box.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, 2, 2)
-	-- GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	-- GuiImage(gui, 10000, math.floor(widget.x + 0.5), math.floor(widget.y + 0.5), "mods/LocationTracker/" .. (widget.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, widget.width / 10, widget.height / 10)
-
-	-- if widget.resize_handle_hovered or widget.resizing then
-	-- 	GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-	-- 	GuiImage(gui, 10001, widget.resize_handle.x, widget.resize_handle.y, "mods/LocationTracker/green_square_10x10.png", 1, widget.resize_handle.width / 10, widget.resize_handle.height / 10)
-	-- end
-
-	-- widget:DebugDraw(gui)
-	-- widget2:DebugDraw(gui)
-
-	if screen_width == nil then
-		screen_width, screen_height = GuiGetScreenDimensions(gui)
-	end
 	if not seen_areas then
 		-- Initializing
 		seen_areas = {}
@@ -220,8 +218,8 @@ function OnWorldPreUpdate()
 			seen_areas = {}
 			local areas = split_string(stored, ",")
 			for i, area in ipairs(areas) do
-				local xyv = split_string(area, "_")
-				seen_areas[encode_coords(xyv[1], xyv[2])] = xyv[3]
+				local xy_v = split_string(area, "_")
+				seen_areas[tonumber(xy_v[1])] = tonumber(xy_v[2])
 			end
 		end
 		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
@@ -238,8 +236,9 @@ function OnWorldPreUpdate()
 		map_height = data.height
 		map = data.map
 	end
-
-	if GameGetFrameNum() < 20 then return end
+	-- Only start the map logic once the game is actually loaded and the camera/player is at the correct location
+	-- The game starts of without the player and the camera being somewhere at the -1, -1 chunk
+	if not frame_world_initialized or GameGetFrameNum() - frame_world_initialized < 20 then return end
 
 	local cx, cy = get_position()
 	local chunk_x, chunk_y = get_chunk_coords(cx, cy)
@@ -278,8 +277,6 @@ function OnWorldPreUpdate()
 						10010 + idx, -- id:int
 						minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
 						minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
-						-- math.floor(screen_width/2 - total_size.x/2) + (x+color_data[idx].offset.x)*zoom*block_size.x, -- x:number
-						-- math.floor(screen_height/2 - total_size.y/2) + (y+color_data[idx].offset.y)*zoom*block_size.y, -- y:number
 						"mods/LocationTracker/files/color_sprites.xml", -- sprite_filename:string
 						1, -- alpha:number
 						color_data[idx].scale_x * zoom / sprite_scale, -- scale:number
@@ -311,9 +308,6 @@ function OnWorldPreUpdate()
 				)
 			end
 		end
-		if GuiButton(gui, 55656, 0, 200, "doody") then
-			doody = not doody
-		end
 		-- Lock button
 		if GuiImageButton(gui, 30001, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y - 1), "", "mods/LocationTracker/files/lock_"..(locked and "closed" or "open") ..".png") then
 			locked = not locked
@@ -324,16 +318,18 @@ function OnWorldPreUpdate()
 			widget.enabled = not locked
 			-- Save settings when locking
 			if locked then
-				ModSettingSet("LocationTracker_minimap_pos_x", minimap_pos_x)
-				ModSettingSet("LocationTracker_minimap_pos_y", minimap_pos_y)
-				ModSettingSet("LocationTracker_minimap_size_x", size.x)
-				ModSettingSet("LocationTracker_minimap_size_y", size.y)
+				ModSettingSet("LocationTracker_version", 1)
+				ModSettingSet("LocationTracker_pos_x", minimap_pos_x)
+				ModSettingSet("LocationTracker_pos_y", minimap_pos_y)
+				ModSettingSet("LocationTracker_size_x", size.x)
+				ModSettingSet("LocationTracker_size_y", size.y)
+				ModSettingSet("LocationTracker_zoom", zoom)
 			end
 		end
 		if locked then
 			GuiTooltip(gui, "Unlock", "Unlock the minimap so you can resize it at the corners and move it around by dragging it.")
 		else
-			GuiTooltip(gui, "Lock", "Lock the minimap in place, prevent movement and resizing.")
+			GuiTooltip(gui, "Lock", "Lock the minimap in place, prevent movement and resizing and save settings.")
 		end
 		if locked then
 			-- Show/hide button
@@ -386,7 +382,6 @@ function OnModPostInit()
 end
 
 function get_color_data(x, y, offset_x, offset_y)
-	-- print("getting color data")
 	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
 	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
 	local chunk = map[encode_coords(biome_x, biome_y)]
@@ -437,5 +432,8 @@ function get_color_data(x, y, offset_x, offset_y)
 end
 
 function OnPausedChanged(is_paused, is_inventory_pause)
-	-- set_minimap_visible(not (is_paused or is_inventory_pause or HasFlagPersistent("locationtracker_hide_map")))
+	if not is_paused and ModSettingGet("LocationTracker_was_reset") then
+		ModSettingSet("LocationTracker_was_reset", false)
+		initialize_defaults()
+	end
 end
