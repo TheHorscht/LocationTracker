@@ -1,3 +1,10 @@
+v1.0.0:
+- Performance improvements because of switch to GuiImages instead of Sprites to draw the map
+- Switch to using image buttons instead of text
+- Map can now be unlocked to change its resolution, scale and position, which will be saved once you lock it again
+- Current position is shown as a blinking square that scales better
+- FIX: Ugly artifacts on different screen resolutions
+
 v0.5.8:
 - FIX: Showing wrong map when other mods came after in load order
 
