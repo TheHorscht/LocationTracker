@@ -35,15 +35,112 @@ local color_data = {}
 local size = {}
 local block_size = { x = 3, y = 3 }
 local total_size
+local locked = true
+local visible = true
+local fog_of_war = true
+local resize_mode = "resolution"
+
+-- Given x, y world position and a chunk offset, returns the wrapped biome map chunk
+-- for instance at a biome map width of 10 at 512 pixels width per chunk, the entire map would be 5120 pixels wide,
+-- if x == 4096+1, biome_x would be 8, with offset_x == 3, it would wrap around to 1
+local function get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
+	offset_x = offset_x or 0
+	offset_y = offset_y or 0
+	local biome_x, biome_y = math.floor((x / 512) + math.floor(map_width / 2)), math.floor((y / 512) + biome_map_offset_y)
+	biome_x = biome_x + offset_x
+	biome_y = biome_y + offset_y
+	biome_x = biome_x % map_width
+	if biome_x < 0 then
+		biome_x = biome_x + map_width
+	end
+	if biome_y < 0 then
+		biome_y = 0
+	end
+	if biome_y > map_height - 1 then
+		biome_y = map_height - 1
+	end
+	return biome_x, biome_y
+end
+
+local function get_chunk_coords(x, y)
+	return math.floor(x / 512), math.floor(y / 512)
+end
+
+function get_color_data(x, y, offset_x, offset_y)
+	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
+	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
+	local chunk = map[encode_coords(biome_x, biome_y)]
+	local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+	local rot, scale_x, scale_y = 0, 1, 1
+	if not fog_of_war then
+		chunk_bitmask = 0
+	else
+		if not permutation_data.indexes[511 - chunk_bitmask] then
+			local data = permutation_data[511 - chunk_bitmask]
+			chunk_bitmask = data.from
+			chunk_bitmask = permutation_data.indexes[chunk_bitmask]
+			local flips = data.op[1]
+			local rotations = data.op[2]
+			if flips == 1 then
+				scale_x = -1
+			end
+			for i=1,rotations do
+				rot = rot + math.rad(90)
+			end
+		else
+			chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
+		end
+	end
+
+	local offsets = {
+    { x = 0, y = 0 },
+    { x = 1, y = 0 },
+    { x = 1, y = 1 },
+		{ x = 0, y = 1 },
+		-- These are for when scale_x == -1
+    { x = 1, y = 0 },
+    { x = 1, y = 1 },
+    { x = 0, y = 1 },
+    { x = 0, y = 0 },
+  }
+	local quadrant = math.floor(rot / (math.pi * 2) * 4) + 4 * (scale_x == -1 and 1 or 0) % 8
+	-- local quadrant = (math.floor(rot / (math.pi * 2) * 4) + (scale_x == -1 and 3 or 0)) % 4
+
+	return {
+		anim = "anim_" .. chunk_bitmask,
+		scale_x = scale_x,
+		rot = rot,
+		offset = offsets[quadrant+1],
+		is_fully_black = chunk_bitmask == 101,
+		color = { r = chunk.r / 255, g = chunk.g / 255, b = chunk.b / 255 },
+	}
+end
 
 local function calculate_total_size()
 	total_size = { x = size.x * block_size.x * zoom, y = size.y * block_size.y * zoom }
 end
 
-local locked = true
-local visible = true
-local fog_of_war = true
-local resize_mode = "resolution"
+local function get_position()
+	local x, y
+	local players = EntityGetWithTag("player_unit")
+	if #players > 0 then
+		x, y = EntityGetTransform(players[1])
+	else
+		x, y = GameGetCameraPos()
+	end
+	return x, y
+end
+
+local function generate_color_data()
+	local cx, cy = get_position()
+	color_data = {}
+	for y=0, size.y-1 do
+		for x=0, size.x-1 do
+			local idx = x+y*size.x
+			color_data[idx] = get_color_data(cx, cy, x-math.floor(size.x/2), y-math.floor(size.y/2))
+		end
+	end
+end
 
 local function load_settings()
 	minimap_pos_x = ModSettingGet("LocationTracker.pos_x")
@@ -52,7 +149,12 @@ local function load_settings()
 	size.y = truncate_float(ModSettingGet("LocationTracker.size_y"))
 	zoom = ModSettingGet("LocationTracker.zoom")
 	show_location = ModSettingGet("LocationTracker.show_location")
+	fog_of_war = ModSettingGetNextValue("LocationTracker.fog_of_war")
+	if fog_of_war == nil then
+		fog_of_war = true
+	end
 	calculate_total_size()
+	color_data = nil
 end
 load_settings()
 
@@ -110,43 +212,6 @@ if biomes_all_content then
 	biome_map_offset_y = xml.attr.biome_offset_y
 end
 
-local function get_chunk_coords(x, y)
-	return math.floor(x / 512), math.floor(y / 512)
-end
-
--- Given x, y world position and a chunk offset, returns the wrapped biome map chunk
--- for instance at a biome map width of 10 at 512 pixels width per chunk, the entire map would be 5120 pixels wide,
--- if x == 4096+1, biome_x would be 8, with offset_x == 3, it would wrap around to 1
-local function get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
-	offset_x = offset_x or 0
-	offset_y = offset_y or 0
-	local biome_x, biome_y = math.floor((x / 512) + math.floor(map_width / 2)), math.floor((y / 512) + biome_map_offset_y)
-	biome_x = biome_x + offset_x
-	biome_y = biome_y + offset_y
-	biome_x = biome_x % map_width
-	if biome_x < 0 then
-		biome_x = biome_x + map_width
-	end
-	if biome_y < 0 then
-		biome_y = 0
-	end
-	if biome_y > map_height - 1 then
-		biome_y = map_height - 1
-	end
-	return biome_x, biome_y
-end
-
-local function get_position()
-	local x, y
-	local players = EntityGetWithTag("player_unit")
-	if #players > 0 then
-		x, y = EntityGetTransform(players[1])
-	else
-		x, y = GameGetCameraPos()
-	end
-	return x, y
-end
-
 local widget = EZMouse.Widget.new({
 	x = 200,
 	y = 100,
@@ -176,19 +241,8 @@ widget:AddEventListener("resize", function(self, move_x, move_y)
 		self.min_height = min_size
 	end
 	calculate_total_size()
+	color_data = nil
 end)
-local widget2 = EZMouse.Widget.new({
-	x = 100,
-	y = 100,
-	width = 100,
-	height = 50,
-	min_width = 50,
-	min_height = 50,
-	resizable = true,
-	resize_uniform = true,
-	-- resize_symmetrical = true,
-	resize_granularity = 10,
-})
 
 -- Save information about when the game was done loading
 local frame_world_initialized
@@ -224,6 +278,7 @@ function OnWorldPreUpdate()
 	if GameHasFlagRun("locationtracker_reload_map") then
 		GameRemoveFlagRun("locationtracker_reload_map")
 		seen_areas = {}
+		color_data = nil
 		GlobalsSetValue("LocationTracker_seen_areas", "")
 		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
 		map_width = data.width
@@ -244,12 +299,18 @@ function OnWorldPreUpdate()
 	local chunk_coords = encode_coords(chunk_x, chunk_y)
 	local current_chunk_bitmask = seen_areas[chunk_coords] or 0
 	local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
+	-- Invalidate the cache when moving to a new chunk
+	if chunk_x ~= previous_chunk_x or chunk_y ~= previous_chunk_y then
+		color_data = nil
+	end
+	previous_chunk_x = chunk_x
+	previous_chunk_y = chunk_y
 	if current_chunk_bitmask ~= new_value then
-		-- color_data = {}
+		color_data = nil
 		seen_areas[chunk_coords] = new_value
 		local out = ""
 		for k, v in pairs(seen_areas) do
-			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation?
+			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation? Concatenation is super slow
 			if next(seen_areas,k) then
 				out = out .. ","
 			end
@@ -273,11 +334,13 @@ function OnWorldPreUpdate()
 
 	if map then
 		if visible or not locked then
+			if not color_data then
+				generate_color_data()
+			end
 			-- Draw the map
 			for y=0, size.y-1 do
 				for x=0, size.x-1 do
 					local idx = x+y*size.x
-					color_data[idx] = get_color_data(cx, cy, x-math.floor(size.x/2), y-math.floor(size.y/2))
 					GuiColorSetForNextWidget(gui, color_data[idx].color.r, color_data[idx].color.g, color_data[idx].color.b, 1)
 					GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 					GuiImage(
@@ -353,6 +416,8 @@ function OnWorldPreUpdate()
 			-- Fog of war button
 			if GuiImageButton(gui, 30003, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
 				fog_of_war = not fog_of_war
+				generate_color_data()
+				ModSettingSetNextValue("LocationTracker.fog_of_war", fog_of_war, false)
 			end
 			if fog_of_war then
 				GuiTooltip(gui, "Hide fog of war", "")
@@ -388,56 +453,6 @@ function OnModPostInit()
 	if content then
 		mod_colors = dofile("mods/LocationTracker/_virtual/mod_colors.lua")
 	end
-end
-
-function get_color_data(x, y, offset_x, offset_y)
-	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
-	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
-	local chunk = map[encode_coords(biome_x, biome_y)]
-	local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
-	local rot, scale_x, scale_y = 0, 1, 1
-	if not fog_of_war then
-		chunk_bitmask = 0
-	else
-		if not permutation_data.indexes[511 - chunk_bitmask] then
-			local data = permutation_data[511 - chunk_bitmask]
-			chunk_bitmask = data.from
-			chunk_bitmask = permutation_data.indexes[chunk_bitmask]
-			local flips = data.op[1]
-			local rotations = data.op[2]
-			if flips == 1 then
-				scale_x = -1
-			end
-			for i=1,rotations do
-				rot = rot + math.rad(90)
-			end
-		else
-			chunk_bitmask = permutation_data.indexes[511 - chunk_bitmask]
-		end
-	end
-
-	local offsets = {
-    { x = 0, y = 0 },
-    { x = 1, y = 0 },
-    { x = 1, y = 1 },
-		{ x = 0, y = 1 },
-		-- These are for when scale_x == -1
-    { x = 1, y = 0 },
-    { x = 1, y = 1 },
-    { x = 0, y = 1 },
-    { x = 0, y = 0 },
-  }
-	local quadrant = math.floor(rot / (math.pi * 2) * 4) + 4 * (scale_x == -1 and 1 or 0) % 8
-	-- local quadrant = (math.floor(rot / (math.pi * 2) * 4) + (scale_x == -1 and 3 or 0)) % 4
-
-	return {
-		anim = "anim_" .. chunk_bitmask,
-		scale_x = scale_x,
-		rot = rot,
-		offset = offsets[quadrant+1],
-		is_fully_black = chunk_bitmask == 101,
-		color = { r = chunk.r / 255, g = chunk.g / 255, b = chunk.b / 255 },
-	}
 end
 
 function OnPausedChanged(is_paused, is_inventory_pause)

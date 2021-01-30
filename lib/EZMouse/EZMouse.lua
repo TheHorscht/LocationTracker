@@ -291,7 +291,7 @@ local function update(gui) -- EZMouse_gui
 	-- Get whatever state we can directly from the component
 	if controls_component and GameGetFrameNum() > 10 then
     x, y = ComponentGetValue2(controls_component, "mMousePosition")
-    
+
     left_down = ComponentGetValue2(controls_component, "mButtonDownFire")
     left_pressed = ComponentGetValue2(controls_component, "mButtonFrameFire") == GameGetFrameNum()
 
