@@ -1,3 +1,6 @@
+UNRELEASED:
+- FIX: Not working with biome map mods
+
 v1.0.0:
 - Performance improvements because of switch to GuiImages instead of Sprites to draw the map
 - Switch to using image buttons instead of text
