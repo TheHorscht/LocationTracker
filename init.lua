@@ -8,6 +8,10 @@ ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/lib/EZMouse/g
 
 local defaults = dofile_once("mods/LocationTracker/settings_defaults.lua")
 
+local function truncate_float(num)
+  return num + (2^52 + 2^51) - (2^52 + 2^51)
+end
+
 function split_string(inputstr, sep)
   sep = sep or "%s"
   local t= {}
@@ -25,6 +29,7 @@ local biome_map_offset_y = 14
 local seen_areas
 local map
 local zoom
+local show_location
 local sprite_scale = 3
 local color_data = {}
 local size = {}
@@ -40,23 +45,16 @@ local visible = true
 local fog_of_war = true
 local resize_mode = "resolution"
 
-local function initialize_defaults()
-	if ModSettingGet("LocationTracker_pos_x") then
-		minimap_pos_x = ModSettingGet("LocationTracker_pos_x")
-		minimap_pos_y = ModSettingGet("LocationTracker_pos_y")
-	else
-		dummy_gui = dummy_gui or GuiCreate()
-		GuiStartFrame(dummy_gui)
-		screen_width, screen_height = GuiGetScreenDimensions(dummy_gui)
-		minimap_pos_x = screen_width * defaults.pos_x
-		minimap_pos_y = screen_height * defaults.pos_y
-	end
-	size.x = ModSettingGet("LocationTracker_size_x") or defaults.size_x
-	size.y = ModSettingGet("LocationTracker_size_y") or defaults.size_y
-	zoom = ModSettingGet("LocationTracker_zoom") or defaults.zoom
+local function load_settings()
+	minimap_pos_x = ModSettingGet("LocationTracker.pos_x")
+	minimap_pos_y = ModSettingGet("LocationTracker.pos_y")
+	size.x = truncate_float(ModSettingGet("LocationTracker.size_x"))
+	size.y = truncate_float(ModSettingGet("LocationTracker.size_y"))
+	zoom = ModSettingGet("LocationTracker.zoom")
+	show_location = ModSettingGet("LocationTracker.show_location")
 	calculate_total_size()
 end
-initialize_defaults()
+load_settings()
 
 -- Try to find other mods' map script for appending to it
 local biome_map_script_paths = {}
@@ -110,10 +108,6 @@ local biomes_all_content = ModTextFileGetContent("data/biome/_biomes_all.xml")
 if biomes_all_content then
 	local xml = nxml.parse(biomes_all_content)
 	biome_map_offset_y = xml.attr.biome_offset_y
-end
-
-local function truncate_float(num)
-  return num + (2^52 + 2^51) - (2^52 + 2^51)
 end
 
 local function get_chunk_coords(x, y)
@@ -263,6 +257,20 @@ function OnWorldPreUpdate()
 		GlobalsSetValue("LocationTracker_seen_areas", out)
 	end
 
+	-- Make buttons non-interactive
+	-- Stolen from goki's things ( ͡° ͜ʖ ͡°)
+	local player = EntityGetWithTag("player_unit")[1]
+	if player then
+		local platform_shooter_player = EntityGetFirstComponentIncludingDisabled(player, "PlatformShooterPlayerComponent")
+		if platform_shooter_player then
+			local is_gamepad = ComponentGetValue2(platform_shooter_player, "mHasGamepadControlsPrev")
+			if is_gamepad then
+				GuiOptionsAdd(gui, GUI_OPTION.NonInteractive)
+				GuiOptionsAdd(gui, GUI_OPTION.AlwaysClickable)
+			end
+		end
+	end
+
 	if map then
 		if visible or not locked then
 			-- Draw the map
@@ -293,7 +301,8 @@ function OnWorldPreUpdate()
 			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
 			-- Draw the dot in the center
 			local blink_delay = 30
-			if GameGetFrameNum() % (blink_delay * 2) >= blink_delay then
+			if (show_location == "blink" and GameGetFrameNum() % (blink_delay * 2) >= blink_delay)
+				or show_location == "static" then
 				GuiZSetForNextWidget(gui, -999)
 				GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 				GuiColorSetForNextWidget(gui, 1, 0, 0, 1)
@@ -318,12 +327,12 @@ function OnWorldPreUpdate()
 			widget.enabled = not locked
 			-- Save settings when locking
 			if locked then
-				ModSettingSet("LocationTracker_version", 1)
-				ModSettingSet("LocationTracker_pos_x", minimap_pos_x)
-				ModSettingSet("LocationTracker_pos_y", minimap_pos_y)
-				ModSettingSet("LocationTracker_size_x", size.x)
-				ModSettingSet("LocationTracker_size_y", size.y)
-				ModSettingSet("LocationTracker_zoom", zoom)
+				ModSettingSetNextValue("LocationTracker.pos_x", minimap_pos_x, false)
+				ModSettingSetNextValue("LocationTracker.pos_x", minimap_pos_x, false)
+				ModSettingSetNextValue("LocationTracker.pos_y", minimap_pos_y, false)
+				ModSettingSetNextValue("LocationTracker.size_x", size.x, false)
+				ModSettingSetNextValue("LocationTracker.size_y", size.y, false)
+				ModSettingSetNextValue("LocationTracker.zoom", zoom, false)
 			end
 		end
 		if locked then
@@ -432,8 +441,8 @@ function get_color_data(x, y, offset_x, offset_y)
 end
 
 function OnPausedChanged(is_paused, is_inventory_pause)
-	if not is_paused and ModSettingGet("LocationTracker_was_reset") then
-		ModSettingSet("LocationTracker_was_reset", false)
-		initialize_defaults()
+	if not is_paused and ModSettingGet("LocationTracker.ui_needs_update") then
+		ModSettingSet("LocationTracker.ui_needs_update", false)
+		load_settings()
 	end
 end

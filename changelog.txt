@@ -1,4 +1,5 @@
 UNRELEASED:
+- Make settings adjustable through the mod settings menu
 - FIX: Not working with biome map mods
 
 v1.0.0:
