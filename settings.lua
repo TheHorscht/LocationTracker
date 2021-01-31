@@ -28,7 +28,6 @@ function mod_setting_slider_custom( mod_id, gui, in_main_menu, im_id, setting )
 end
 
 function mod_setting_change_callback( mod_id, gui, in_main_menu, setting, old_value, new_value  )
-	print( tostring(new_value) )
 	ModSettingSet(mod_id .. ".ui_needs_update", true)
 end
 
@@ -110,27 +109,21 @@ mod_settings =
 	},
 }
 
-function adjust_setting_values(gui)
-	if not gui then
-		gui = GuiCreate()
+function adjust_setting_values(screen_width, screen_height)
+	if not screen_width then
+		local gui = GuiCreate()
 		GuiStartFrame(gui)
+		screen_width, screen_height = GuiGetScreenDimensions(gui)
 	end
-	new_screen_width, new_screen_height = GuiGetScreenDimensions(gui)
-	-- Update settings when resolution changes
-	if screen_width ~= new_screen_width or screen_height ~= new_screen_height then
-		print("Updating settings")
-		for i, setting in ipairs(mod_settings) do
-			if setting.id == "pos_x" then
-				setting.value_max = new_screen_width
-				setting.value_default = new_screen_width * defaults.pos_x
-			elseif setting.id == "pos_y" then
-				setting.value_max = new_screen_height
-				setting.value_default = new_screen_height * defaults.pos_y
-			end
+	for i, setting in ipairs(mod_settings) do
+		if setting.id == "pos_x" then
+			setting.value_max = screen_width
+			setting.value_default = screen_width * defaults.pos_x
+		elseif setting.id == "pos_y" then
+			setting.value_max = screen_height
+			setting.value_default = screen_height * defaults.pos_y
 		end
 	end
-	screen_width = new_screen_width
-	screen_height = new_screen_height
 end
 
 -- This function is called to ensure the correct setting values are visible to the game via ModSettingGet(). your mod's settings don't work if you don't have a function like this defined in settings.lua.
@@ -157,7 +150,14 @@ end
 
 -- This function is called to display the settings UI for this mod. Your mod's settings wont be visible in the mod settings menu if this function isn't defined correctly.
 function ModSettingsGui( gui, in_main_menu )
-	adjust_setting_values(gui)
+	new_screen_width, new_screen_height = GuiGetScreenDimensions(gui)
+	-- Update settings when resolution changes
+	if screen_width ~= new_screen_width or screen_height ~= new_screen_height then
+		adjust_setting_values(new_screen_width, new_screen_height)
+	end
+	screen_width = new_screen_width
+	screen_height = new_screen_height
+
 	mod_settings_gui( mod_id, mod_settings, gui, in_main_menu )
 
 	local id = 55555
@@ -166,6 +166,7 @@ function ModSettingsGui( gui, in_main_menu )
 		for setting, default in pairs(defaults) do
 			ModSettingRemove(mod_id .. "." .. setting)
 		end
+		ModSettingsUpdate(MOD_SETTING_SCOPE_RUNTIME)
 		ModSettingSet(mod_id .. ".ui_needs_update", true)
 	end
 end
