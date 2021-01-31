@@ -1,0 +1,10 @@
+Adds a rough minimap to the top right that shows the area around you and tracks where you have been.
+
+You can resize and scale the minimap after unlocking it by clicking on the lock button. (This feature can NOT work while a gamepad is connected!)
+To move it, click anywhere on the map and drag it.
+To increase resolution or scale it, switch between zoom and resolution mode after unlocking and then drag the corners and edges.
+Your changes will be saved once you hit lock again.
+
+You can also change the settings in the mod setting menu located in the games options menu.
+
+WARNING: Too high resolutions will cause lag! See what works best for you.

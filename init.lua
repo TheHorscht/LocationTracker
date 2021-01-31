@@ -374,7 +374,7 @@ function OnWorldPreUpdate()
 					25000, -- id:int
 					minimap_pos_x + math.floor(size.x/2) * block_size.x * zoom + (sub_x)*zoom, -- x:number
 					minimap_pos_y + math.floor(size.y/2) * block_size.x * zoom + (sub_y)*zoom, -- y:number
-					"mods/LocationTracker/a.png", -- sprite_filename:string
+					"mods/LocationTracker/files/white_3x3.png", -- sprite_filename:string
 					1, -- alpha:number
 					block_size.x * zoom / 9 -- scale:number
 				)

@@ -1,7 +1,8 @@
-UNRELEASED:
-- Performance improvements
+v1.0.1:
+- More performance improvements
 - Settings are now also adjustable through the mod settings menu
 - FIX: Should now work fine again with biome map mods
+- FIX: GUI buttons now ignore gamepad input
 
 v1.0.0:
 - Performance improvements because of switch to GuiImages instead of Sprites to draw the map
