@@ -361,7 +361,7 @@ function OnWorldPreUpdate()
 			-- Border
 			GuiZSetForNextWidget(gui, -999)
 			GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, math.floor(total_size.x), math.floor(total_size.y), 3, "mods/LocationTracker/files/border.png")
+			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, total_size.x, total_size.y, 3, "mods/LocationTracker/files/border.png")
 			-- Draw the dot in the center
 			local blink_delay = 30
 			if (show_location == "blink" and GameGetFrameNum() % (blink_delay * 2) >= blink_delay)

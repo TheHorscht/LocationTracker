@@ -134,7 +134,7 @@ function Widget.new(props)
       local new_height = resize_start_height + height_change
       new_height = math.floor(new_height / self.resize_granularity) * self.resize_granularity
       -- move_ will be positive if moving outwards and negative when moving inwards
-      local has_moved = math.abs(move_x) > 0 or math.abs(move_y) > 0
+      local has_moved = math.abs(width_change) > 0.5 or math.abs(height_change) > 0.5
       if self.resize_uniform then
         local scale_x = (resize_start_x + resize_start_width * math.max(0, -protected.resize_handle.move[1]) - sx) * -protected.resize_handle.move[1] / resize_start_width
         local scale_y = (resize_start_y + resize_start_height * math.max(0, -protected.resize_handle.move[2]) - sy) * -protected.resize_handle.move[2] / resize_start_height
@@ -159,8 +159,6 @@ function Widget.new(props)
       if has_moved then
         fire_event(self, "resize", move_x, move_y)
       end
-      -- protected.resize_handle.x = protected.resize_handle.x + protected.resize_handle.move[1] * move_x
-      -- protected.resize_handle.y = protected.resize_handle.y + protected.resize_handle.move[2] * move_y
     end
 
     if protected.resize_handle_hovered or protected.resizing then
@@ -221,7 +219,7 @@ function Widget.new(props)
 
   o.DebugDraw = function(self, gui)
     GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-    GuiImage(gui, 10000, math.floor(self.x + 0.5), math.floor(self.y + 0.5), "mods/LocationTracker/lib/EZMouse/" .. (self.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, self.width / 10, self.height / 10)
+    GuiImage(gui, 10000, self.x, self.y, "mods/LocationTracker/lib/EZMouse/" .. (self.is_hovered and "green_square_10x10.png" or "red_square_10x10.png"), 1, self.width / 10, self.height / 10)
 
     if self.resize_handle_hovered or self.resizing then
       GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
