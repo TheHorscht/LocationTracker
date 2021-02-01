@@ -6,8 +6,6 @@ local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
 local EZMouse = dofile_once("mods/LocationTracker/lib/EZMouse/EZMouse.lua")
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/lib/EZMouse/gun_append.lua")
 
-local defaults = dofile_once("mods/LocationTracker/settings_defaults.lua")
-
 local function truncate_float(num)
   return num + (2^52 + 2^51) - (2^52 + 2^51)
 end
