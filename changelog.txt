@@ -1,3 +1,6 @@
+v1.0.3:
+- FIX: Prevent wands with always casts from firing while dragging/resizing.
+
 v1.0.2:
 - FIX: Steam workshop version would crash because it cannot access a file at the root of the mod directory
 

@@ -1,3 +1,10 @@
+--[[ EZMouse v0.1.0
+
+v0.1.0:
+- Added mouse_down(self, x, y) event to widget
+
+]]
+
 local function is_inside_rect(x, y, rect_x, rect_y, width, height)
 	return not ((x < rect_x) or (x > rect_x + width) or (y < rect_y) or (y > rect_y + height))
 end
@@ -15,6 +22,7 @@ function Widget.new(props)
 
   local resize_start_sx, resize_start_sy = 0, 0
   local resize_start_width, resize_start_height = 0, 0
+  local drag_start_sx, drag_start_sy = 0, 0
   local protected = {
     resizing = false,
     dragging = false,
@@ -37,6 +45,7 @@ function Widget.new(props)
     resize_uniform = not not props.resize_uniform,
     enabled = props.enabled == nil and true or not not props.enabled,
     event_listeners = {
+      mouse_down = {},
       drag = {},
       drag_start = {},
       drag_end = {},
@@ -124,7 +133,7 @@ function Widget.new(props)
     local move_x, move_y = dx, dy
     local start_x, start_y = self.x, self.y
     local start_width, start_height = self.width, self.height
-    
+
     if protected.resizing then
       local width_change = math.floor((resize_start_sx - sx) * -protected.resize_handle.move[1] * (self.resize_symmetrical and 2 or 1) + self.resize_granularity / 2 + 0.5)
       local new_width = resize_start_width + width_change
@@ -169,7 +178,7 @@ function Widget.new(props)
     if not (protected.resize_handle_hovered or protected.resizing) then
       if protected.dragging and not left_down then
         protected.dragging = false
-        fire_event(self, "drag_end", self.x, self.y)
+        fire_event(self, "drag_end", self.x, self.y, drag_start_sx, drag_start_sy)
       end
   
       protected.is_hovered = is_inside_rect(sx, sy, self.x, self.y, self.width, self.height)
@@ -179,9 +188,15 @@ function Widget.new(props)
   
       if self.draggable and protected.is_hovered and left_pressed then
         protected.dragging = true
+        drag_start_sx = self.x
+        drag_start_sy = self.y
         fire_event(self, "drag_start", self.x, self.y)
       end
   
+      if not self.draggable and protected.is_hovered and left_pressed then
+        fire_event(self, "mouse_down", sx, sy)
+      end
+
       if protected.dragging then
         if dx ~= 0 or dy ~= 0 then
           self.x = self.x + dx
@@ -308,7 +323,9 @@ local function update(gui) -- EZMouse_gui
     
     local prevent_wand_firing = false
     for i, draggable in ipairs(Widget.instances) do
-      prevent_wand_firing = draggable:Update(sx, sy, dx, dy, left_down, left_pressed) or prevent_wand_firing
+      if draggable.enabled then
+        prevent_wand_firing = draggable:Update(sx, sy, dx, dy, left_down, left_pressed) or prevent_wand_firing
+      end
     end
     
     GlobalsSetValue("EZMouse_prevent_wand_firing", prevent_wand_firing and "1" or "0")
