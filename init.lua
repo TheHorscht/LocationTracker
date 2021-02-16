@@ -64,6 +64,19 @@ local function get_chunk_coords(x, y)
 	return math.floor(x / 512), math.floor(y / 512)
 end
 
+-- Used in get_color_data, moved out here for performance
+local offsets = {
+	{ x = 0, y = 0 },
+	{ x = 1, y = 0 },
+	{ x = 1, y = 1 },
+	{ x = 0, y = 1 },
+	-- These are for when scale_x == -1
+	{ x = 1, y = 0 },
+	{ x = 1, y = 1 },
+	{ x = 0, y = 1 },
+	{ x = 0, y = 0 },
+}
+
 function get_color_data(x, y, offset_x, offset_y)
 	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
 	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
@@ -90,19 +103,7 @@ function get_color_data(x, y, offset_x, offset_y)
 		end
 	end
 
-	local offsets = {
-    { x = 0, y = 0 },
-    { x = 1, y = 0 },
-    { x = 1, y = 1 },
-		{ x = 0, y = 1 },
-		-- These are for when scale_x == -1
-    { x = 1, y = 0 },
-    { x = 1, y = 1 },
-    { x = 0, y = 1 },
-    { x = 0, y = 0 },
-  }
 	local quadrant = math.floor(rot / (math.pi * 2) * 4) + 4 * (scale_x == -1 and 1 or 0) % 8
-	-- local quadrant = (math.floor(rot / (math.pi * 2) * 4) + (scale_x == -1 and 3 or 0)) % 4
 
 	return {
 		anim = "anim_" .. chunk_bitmask,
@@ -130,12 +131,14 @@ local function get_position()
 end
 
 local function generate_color_data()
+	local halfsize_x = math.floor(size.x/2)
+	local halfsize_y = math.floor(size.y/2)
 	local cx, cy = get_position()
 	color_data = {}
 	for y=0, size.y-1 do
 		for x=0, size.x-1 do
 			local idx = x+y*size.x
-			color_data[idx] = get_color_data(cx, cy, x-math.floor(size.x/2), y-math.floor(size.y/2))
+			color_data[idx] = get_color_data(cx, cy, x - halfsize_x, y - halfsize_y)
 		end
 	end
 end
