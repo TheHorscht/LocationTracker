@@ -251,6 +251,19 @@ function OnWorldInitialized()
 	frame_world_initialized = GameGetFrameNum()
 end
 
+function popf(...)
+	local msg = select(1, ...)
+	last_frame_printed = last_frame_printed or {}
+	if last_frame_printed[msg] and last_frame_printed[msg] < GameGetFrameNum() then
+		print(string.format(...))
+	end
+	last_frame_printed[msg] = GameGetFrameNum()
+end
+
+function color_to_hex(c)
+	return string.format("%02X%02X%02X", c.r * 255, c.g * 255, c.b * 255)
+end
+
 function OnWorldPreUpdate()
 	-- dofile("mods/LocationTracker/files/gui.lua")
 	gui = gui or GuiCreate()
@@ -333,31 +346,193 @@ function OnWorldPreUpdate()
 		end
 	end
 
+	local function get_drawables()
+		if not color_data then
+			generate_color_data()
+		end
+		-- local size_x = size.x
+		-- local size = { x = 50, y = 3 }
+		local pixels = {}
+		for y=0, size.y-1 do
+			for x=0, size.x-1 do
+				local idx = x+y*size.x -- size.x
+				local cdata = color_data[idx]--color_data[idx]
+				cdata.x, cdata.y = x, y
+				pixels[idx] = cdata
+			end
+		end
+
+		local function isSameColor(c1, c2)
+			if not c1 or not c2 then return false end
+			return c1.r == c2.r and c1.g == c2.g and c1.b == c2.b
+		end
+
+		local function getColorAt(x, y)
+			if x < 0 or x > size.x-1 or y < 0 or y > size.y-1 then
+				return nil
+			end
+			local idx = x+y*size.x
+			return pixels[idx].color
+		end
+
+		local id = 1
+		local drawables = {}
+		local completed_rects = {}
+		local color_count = {}
+		local most_prevalent_color
+		for y=0, size.y-1 do
+			local x = 0
+			-- Using a while loop because we can't modify for-loop variables from within the loop
+			while x <= size.x-1 do
+				local width, height = 1, 1
+				local startX, startY = x, y
+				local color = getColorAt(x, y)
+				if completed_rects[encode_coords(x, y)] then
+					x = x + 1
+					-- and continue to the next iteration
+				else
+					-- Try to find all rectangles that can be made from this starting position
+					-- Row by row, walk to the right until the color doesn't match the starting color anymore
+					local maxX = size.x-1
+					local rects = {}
+					for tempY=y, size.y-1 do
+						x = startX
+						width = 1
+						-- Check current color
+						if not isSameColor(color, getColorAt(x, tempY)) then
+							local c = getColorAt(x, tempY)
+							-- if math.abs(color.r - c.r) < 0.001 and math.abs(color.g - c.g) < 0.001 and math.abs(color.b - c.b) < 0.001 then
+							-- popf("color.r(%f) == c.r(%f)? %s", color.r, c.r, color.r == c.r)
+							-- popf("color: r = %f, g = %f, b = %f", color.r, color.g, color.b)
+							-- popf("getColorAt(x, tempY): r = %f, g = %f, b = %f", getColorAt(x, tempY).r, getColorAt(x, tempY).g, getColorAt(x, tempY).b)
+							-- end
+							break
+						end
+						-- Expand as far to the right as we can, stop if we meet a pixel that is already part of a completed big rect or has a different color
+						while x+1 <= maxX and isSameColor(color, getColorAt(x+1, tempY)) and not completed_rects[encode_coords(x+1, tempY)] do
+							if startY == 0 and startX == 0 and width > 1 and GameGetFrameNum() % 60 == 0 then
+								-- print(width)
+							end
+							width = width + 1
+							x = x + 1
+						end
+						maxX = startX + width - 1
+						table.insert(rects, { x = startX, y = startY, width = width, height = height, area = width * height, color = color })
+						height = height + 1
+					end
+					
+					local biggest
+					for i, v in ipairs(rects) do
+						-- if startY == 0 and startX == 0 and GameGetFrameNum() % 60 == 0 then
+						-- 	print(string.format("w: %d, h: %d", v.width, v.height))
+						-- end
+						if not biggest or biggest.area < v.area then
+							biggest = v
+						end						
+					end
+
+					x = startX + biggest.width
+					local alreadyFound = false
+					-- popf("startY: %d, biggest.height: %d", startY, biggest.height)
+					local bb = ""
+					-- for y=0, size.y-1 do
+					-- 	for x=0, size.x-1 do
+					-- 		bb = bb .. (completed_rects[encode_coords(x, y)] and "@" or "X")
+					-- 	end
+					-- 	bb = bb .. "\n"
+					-- end
+					local y2 = biggest.y
+					while y2 < biggest.y + biggest.height and not alreadyFound do
+						local x2 = biggest.x
+						while x2 < biggest.x + biggest.width and not alreadyFound do
+							if completed_rects[encode_coords(x2, y2)] then
+								alreadyFound = true
+								bb = bb .. "alreadyFound"
+							else
+								completed_rects[encode_coords(x2, y2)] = true
+							end
+							bb = bb .. (completed_rects[encode_coords(x, y)] and "@" or "X")
+							x2 = x2 + 1
+						end
+						bb = bb .. "newline\n"
+						y2 = y2 + 1
+					end
+					
+					if not alreadyFound then
+						biggest.id = id
+						id = id + 1
+						biggest.offset = { x = 0, y = 0 }
+						-- biggest.width = 1--width
+						-- biggest.height = 1--height
+						local color_hex = color_to_hex(biggest.color)
+						color_count[color_hex] = (color_count[color_hex] or 0) + 1
+						if not most_prevalent_color then
+							most_prevalent_color = { color_hex = color_hex, color = biggest.color, id = id, count = color_count[color_hex] }
+						else
+							if color_count[color_hex] > most_prevalent_color.count then
+								most_prevalent_color = { color_hex = color_hex, color = biggest.color, id = id, count = color_count[color_hex] }
+							end
+						end
+						table.insert(drawables, biggest)
+					end
+
+
+				end
+				
+
+			end	
+		end	
+
+--[[ 
+Version with most prevalent color
+
+All 60 runs took 860.81ms
+Longest run took 19.02ms
+Average run took 14.35ms
+]]
+
+		local drawables_final = {}
+		for i, v in ipairs(drawables) do
+			if color_to_hex(v.color) ~= most_prevalent_color.color_hex then
+				table.insert(drawables_final, v)
+			end
+		end
+
+		-- popf("#drawables: %d, w*h: %d", #drawables, size.x * size.y)
+		-- popf("#drawables_final: %d, w*h: %d", #drawables_final, size.x * size.y)
+		return drawables_final, most_prevalent_color.color
+	end
+
 	if map then
 		if visible or not locked then
-			if not color_data then
-				generate_color_data()
-			end
 			-- Draw the map
-			for y=0, size.y-1 do
-				for x=0, size.x-1 do
-					local idx = x+y*size.x
-					GuiColorSetForNextWidget(gui, color_data[idx].color.r, color_data[idx].color.g, color_data[idx].color.b, 1)
-					GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
-					GuiImage(
-						gui,
-						10010 + idx, -- id:int
-						minimap_pos_x + (x + color_data[idx].offset.x) * zoom*block_size.x, -- x:number
-						minimap_pos_y + (y + color_data[idx].offset.y) * zoom*block_size.y, -- y:number
-						"mods/LocationTracker/files/color_sprites.xml", -- sprite_filename:string
-						1, -- alpha:number
-						color_data[idx].scale_x * zoom / sprite_scale, -- scale:number
-						zoom / sprite_scale, --color_data[idx].rot -- rotation:number
-						color_data[idx].rot, -- scale_y:number
-						GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndPause, -- rect_animation_playback_type:int = GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide
-						color_data[idx].anim -- rect_animation_name:string = ""
-					)
-				end
+			local drawables, most_prevalent_color = get_drawables()
+			if most_prevalent_color then
+				GuiColorSetForNextWidget(gui, most_prevalent_color.r, most_prevalent_color.g, most_prevalent_color.b, 1)
+				GuiZSetForNextWidget(gui, 2)
+				GuiImage(gui, 10010,
+					minimap_pos_x, minimap_pos_y, "mods/LocationTracker/files/white_3x3.png",
+					1,
+					zoom / sprite_scale * 3 * size.x,
+					zoom / sprite_scale * 3 * size.y,
+					0
+				)
+			end
+			for i, drawable in ipairs(drawables) do
+				GuiColorSetForNextWidget(gui, drawable.color.r, drawable.color.g, drawable.color.b, 1)
+				-- GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
+				GuiImage(gui,
+					10010 + drawable.id, -- id:int
+					minimap_pos_x + (drawable.x + drawable.offset.x) * zoom * block_size.x, -- x:number
+					minimap_pos_y + (drawable.y + drawable.offset.y) * zoom * block_size.y, -- y:number
+					"mods/LocationTracker/files/white_3x3.png", --color_sprites.xml", -- sprite_filename:string
+					1, -- alpha:number
+					--[[ drawable.scale_x *  ]]zoom / sprite_scale * 3 * drawable.width, -- scale:number
+					zoom / sprite_scale * 3 * drawable.height, --color_data[idx].rot -- rotation:number
+					0 -- drawable.rot, -- scale_y:number
+					-- GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndPause, -- rect_animation_playback_type:int = GUI_RECT_ANIMATION_PLAYBACK.PlayToEndAndHide
+					-- drawable.anim -- rect_animation_name:string = ""
+				)
 			end
 			-- Border
 			GuiZSetForNextWidget(gui, -999)
