@@ -5,3 +5,4 @@ dist
 compatibility.xml
 noita_api.lua
 .vscode/settings.json
+measure.lua
