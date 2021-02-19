@@ -140,151 +140,17 @@ local function generate_color_data()
 	for y=0, size.y-1 do
 		for x=0, size.x-1 do
 			local idx = x+y*size.x
-			color_data[idx] = measure("get_color_data INSIDE", function() return get_color_data(cx, cy, x - halfsize_x, y - halfsize_y) end, 5000, "ns")
-			-- color_data[idx] = get_color_data(cx, cy, x - halfsize_x, y - halfsize_y)
+			-- color_data[idx] = measure("get_color_data INSIDE", function() return get_color_data(cx, cy, x - halfsize_x, y - halfsize_y) end, 5000, "ns")
+			color_data[idx] = get_color_data(cx, cy, x - halfsize_x, y - halfsize_y)
 		end
 	end
 end
 
-local function load_settings()
-	minimap_pos_x = ModSettingGet("LocationTracker.pos_x")
-	minimap_pos_y = ModSettingGet("LocationTracker.pos_y")
-	size.x = truncate_float(ModSettingGet("LocationTracker.size_x"))
-	size.y = truncate_float(ModSettingGet("LocationTracker.size_y"))
-	zoom = ModSettingGet("LocationTracker.zoom")
-	show_location = ModSettingGet("LocationTracker.show_location")
-	fog_of_war = ModSettingGetNextValue("LocationTracker.fog_of_war")
-	if fog_of_war == nil then
-		fog_of_war = true
-	end
-	calculate_total_size()
-	color_data = nil
-end
-load_settings()
-
--- Try to find other mods' map script for appending to it
-local biome_map_script_paths = {}
-for i, mod_id in ipairs(ModGetActiveModIDs()) do
-	local init_content = ModTextFileGetContent("mods/" .. mod_id .. "/init.lua")
-	if init_content then
-		-- Get the magic numbers file path if present
-		local magic_numbers_file_path
-		local lines = init_content:gmatch("([^\r\n]+)")
-		for line in lines do
-			-- Make sure to only get it if it's not commented out
-			local match_start, match_end, capture = line:find("ModMagicNumbersFileAdd%s*%(%s*[\"\']%s*([^%)]*)%s*[\"\']%s*%)")
-			if match_start then
-				if not (line:sub(1, match_start-1):find("%-%-")) then
-					magic_numbers_file_path = capture
-				end
-			end
-		end
-		-- Try to get the BIOME_MAP path
-		local biome_map_script_path
-		if magic_numbers_file_path then
-			local magic_numbers_content = ModTextFileGetContent(magic_numbers_file_path)
-			if magic_numbers_content then
-				local xml = nxml.parse(magic_numbers_content)
-				biome_map_script_path = xml.attr.BIOME_MAP
-			end
-		end
-
-		if biome_map_script_path then
-			table.insert(biome_map_script_paths, biome_map_script_path)
-		end
-	end
-end
-
-if #biome_map_script_paths == 0 then
-	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
-	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
-	ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
-end
-
--- Append to the already registered map script as late as possible when all other mods have added their appends already
--- this append needs to be the absolute last.
-function OnMagicNumbersAndWorldSeedInitialized()
-	ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
-	for i, script_path in ipairs(biome_map_script_paths) do
-		ModLuaFileAppend(script_path, "mods/LocationTracker/files/biome_map_append.lua")
-	end
-end
-
-local biomes_all_content = ModTextFileGetContent("data/biome/_biomes_all.xml")
-if biomes_all_content then
-	local xml = nxml.parse(biomes_all_content)
-	biome_map_offset_y = xml.attr.biome_offset_y
-end
-
-local widget = EZMouse.Widget.new({
-	x = 200,
-	y = 100,
-	width = 100,
-	height = 60,
-	resizable = true,
-	enabled = false,
-	resize_granularity = block_size.x * zoom,
-})
-widget:AddEventListener("drag", function(self, dx, dy)
-	minimap_pos_x = self.x
-	minimap_pos_y = self.y
-end)
-widget:AddEventListener("resize", function(self, move_x, move_y)
-	minimap_pos_x = self.x
-	minimap_pos_y = self.y
-	if resize_mode == "zoom" then
-		local min_size = 5
-		self.min_width = min_size
-		self.min_height = min_size
-		zoom = self.width / block_size.x / size.x
-	else
-		size.x = math.floor(self.width / block_size.x / zoom + 0.5)
-		size.y = math.floor(self.height / block_size.y / zoom + 0.5)
-		local min_size = block_size.x * zoom
-		self.min_width = min_size
-		self.min_height = min_size
-	end
-	calculate_total_size()
-	color_data = nil
-end)
-
--- Save information about when the game was done loading
-local frame_world_initialized
-function OnWorldInitialized()
-	frame_world_initialized = GameGetFrameNum()
-end
-
-function popf(...)
-	local msg = select(1, ...)
-	last_frame_printed = last_frame_printed or {}
-	if last_frame_printed[msg] and last_frame_printed[msg] < GameGetFrameNum() then
-		print(string.format(...))
-	end
-	last_frame_printed[msg] = GameGetFrameNum()
-end
-
-function color_to_hex(c)
-	return string.format("%02X%02X%02X", c.r * 255, c.g * 255, c.b * 255)
-end
-
-
-
---[[ 
-Version with most prevalent color
-
-All 60 runs took 860.81ms
-Longest run took 19.02ms
-Average run took 14.35ms
-]]
-
---[[ avg run 4.30ms with local funcs outside ]]
---[[ avg run 4.70ms with local funcs inside ]]
-
-local function get_drawables()
-	if not color_data then
-		measure("generate_color_data()", generate_color_data, 1)
-		-- generate_color_data()
-	end
+local function regenerate_drawables()
+	if not map then return end
+	-- measure("generate_color_data()", generate_color_data, 1)
+	print("Regebnerating gdrawlable")
+	generate_color_data()
 	-- local size_x = size.x
 	-- local size = { x = 50, y = 3 }
 	local pixels = {}
@@ -422,18 +288,147 @@ local function get_drawables()
 
 
 
-	local drawables_final = {}
+	g_most_prevalent_color = most_prevalent_color and most_prevalent_color.color
+	g_drawables = {}
 	for i, v in ipairs(drawables) do
 		if color_to_hex(v.color) ~= most_prevalent_color.color_hex then
-			table.insert(drawables_final, v)
+			table.insert(g_drawables, v)
 		end
 	end
-
-	-- popf("#drawables: %d, w*h: %d", #drawables, size.x * size.y)
-	-- popf("#drawables_final: %d, w*h: %d", #drawables_final, size.x * size.y)
-	return drawables_final, most_prevalent_color and most_prevalent_color.color
 end
 
+local function load_settings()
+	minimap_pos_x = ModSettingGet("LocationTracker.pos_x")
+	minimap_pos_y = ModSettingGet("LocationTracker.pos_y")
+	size.x = truncate_float(ModSettingGet("LocationTracker.size_x"))
+	size.y = truncate_float(ModSettingGet("LocationTracker.size_y"))
+	zoom = ModSettingGet("LocationTracker.zoom")
+	show_location = ModSettingGet("LocationTracker.show_location")
+	fog_of_war = ModSettingGetNextValue("LocationTracker.fog_of_war")
+	if fog_of_war == nil then
+		fog_of_war = true
+	end
+	calculate_total_size()
+	regenerate_drawables()
+end
+load_settings()
+
+-- Try to find other mods' map script for appending to it
+local biome_map_script_paths = {}
+for i, mod_id in ipairs(ModGetActiveModIDs()) do
+	local init_content = ModTextFileGetContent("mods/" .. mod_id .. "/init.lua")
+	if init_content then
+		-- Get the magic numbers file path if present
+		local magic_numbers_file_path
+		local lines = init_content:gmatch("([^\r\n]+)")
+		for line in lines do
+			-- Make sure to only get it if it's not commented out
+			local match_start, match_end, capture = line:find("ModMagicNumbersFileAdd%s*%(%s*[\"\']%s*([^%)]*)%s*[\"\']%s*%)")
+			if match_start then
+				if not (line:sub(1, match_start-1):find("%-%-")) then
+					magic_numbers_file_path = capture
+				end
+			end
+		end
+		-- Try to get the BIOME_MAP path
+		local biome_map_script_path
+		if magic_numbers_file_path then
+			local magic_numbers_content = ModTextFileGetContent(magic_numbers_file_path)
+			if magic_numbers_content then
+				local xml = nxml.parse(magic_numbers_content)
+				biome_map_script_path = xml.attr.BIOME_MAP
+			end
+		end
+
+		if biome_map_script_path then
+			table.insert(biome_map_script_paths, biome_map_script_path)
+		end
+	end
+end
+
+if #biome_map_script_paths == 0 then
+	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
+	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
+	ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
+end
+
+-- Append to the already registered map script as late as possible when all other mods have added their appends already
+-- this append needs to be the absolute last.
+function OnMagicNumbersAndWorldSeedInitialized()
+	ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
+	for i, script_path in ipairs(biome_map_script_paths) do
+		ModLuaFileAppend(script_path, "mods/LocationTracker/files/biome_map_append.lua")
+	end
+end
+
+local biomes_all_content = ModTextFileGetContent("data/biome/_biomes_all.xml")
+if biomes_all_content then
+	local xml = nxml.parse(biomes_all_content)
+	biome_map_offset_y = xml.attr.biome_offset_y
+end
+
+local widget = EZMouse.Widget.new({
+	x = 200,
+	y = 100,
+	width = 100,
+	height = 60,
+	resizable = true,
+	enabled = false,
+	resize_granularity = block_size.x * zoom,
+})
+widget:AddEventListener("drag", function(self, dx, dy)
+	minimap_pos_x = self.x
+	minimap_pos_y = self.y
+end)
+widget:AddEventListener("resize", function(self, move_x, move_y)
+	minimap_pos_x = self.x
+	minimap_pos_y = self.y
+	if resize_mode == "zoom" then
+		local min_size = 5
+		self.min_width = min_size
+		self.min_height = min_size
+		zoom = self.width / block_size.x / size.x
+	else
+		size.x = math.floor(self.width / block_size.x / zoom + 0.5)
+		size.y = math.floor(self.height / block_size.y / zoom + 0.5)
+		local min_size = block_size.x * zoom
+		self.min_width = min_size
+		self.min_height = min_size
+	end
+	calculate_total_size()
+	regenerate_drawables()
+end)
+
+-- Save information about when the game was done loading
+local frame_world_initialized
+function OnWorldInitialized()
+	frame_world_initialized = GameGetFrameNum()
+end
+
+function popf(...)
+	local msg = select(1, ...)
+	last_frame_printed = last_frame_printed or {}
+	if last_frame_printed[msg] and last_frame_printed[msg] < GameGetFrameNum() then
+		print(string.format(...))
+	end
+	last_frame_printed[msg] = GameGetFrameNum()
+end
+
+function color_to_hex(c)
+	return string.format("%02X%02X%02X", c.r * 255, c.g * 255, c.b * 255)
+end
+
+
+--[[ 
+Version with most prevalent color
+
+All 60 runs took 860.81ms
+Longest run took 19.02ms
+Average run took 14.35ms
+]]
+
+--[[ avg run 4.30ms with local funcs outside ]]
+--[[ avg run 4.70ms with local funcs inside ]]
 
 
 function OnWorldPreUpdate()
@@ -464,7 +459,7 @@ function OnWorldPreUpdate()
 	if GameHasFlagRun("locationtracker_reload_map") then
 		GameRemoveFlagRun("locationtracker_reload_map")
 		seen_areas = {}
-		color_data = nil
+		regenerate_drawables()
 		GlobalsSetValue("LocationTracker_seen_areas", "")
 		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
 		map_width = data.width
@@ -487,13 +482,13 @@ function OnWorldPreUpdate()
 	local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
 	-- Invalidate the cache when moving to a new chunk
 	if chunk_x ~= previous_chunk_x or chunk_y ~= previous_chunk_y then
-		color_data = nil
+		regenerate_drawables()
 	end
 	previous_chunk_x = chunk_x
 	previous_chunk_y = chunk_y
 	if current_chunk_bitmask ~= new_value then
-		color_data = nil
 		seen_areas[chunk_coords] = new_value
+		regenerate_drawables()
 		local out = ""
 		for k, v in pairs(seen_areas) do
 			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation? Concatenation is super slow
@@ -521,12 +516,12 @@ function OnWorldPreUpdate()
 	if map then
 		if visible or not locked then
 			-- Draw the map
-			-- local drawables, most_prevalent_color = measure("get_drawables()", get_drawables)
-			local drawables, most_prevalent_color = get_drawables()
 			-- popf("#drawables: %d, w*h: %d", #drawables, size.x * size.y)
-			if most_prevalent_color then
-				GuiColorSetForNextWidget(gui, most_prevalent_color.r, most_prevalent_color.g, most_prevalent_color.b, 1)
+			-- Draw a rect spanning the entire map area behind all the other rects which then get rendered on top
+			if g_most_prevalent_color then
 				GuiZSetForNextWidget(gui, 2)
+				GuiColorSetForNextWidget(gui, g_most_prevalent_color.r, g_most_prevalent_color.g, g_most_prevalent_color.b, 1)
+				GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 				GuiImage(gui, 10010,
 					minimap_pos_x, minimap_pos_y, "mods/LocationTracker/files/white_3x3.png",
 					1,
@@ -535,7 +530,7 @@ function OnWorldPreUpdate()
 					0
 				)
 			end
-			for i, drawable in ipairs(drawables) do
+			for i, drawable in ipairs(g_drawables) do
 				GuiZSetForNextWidget(gui, 1)
 				GuiColorSetForNextWidget(gui, drawable.color.r, drawable.color.g, drawable.color.b, 1)
 				GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
@@ -611,7 +606,7 @@ function OnWorldPreUpdate()
 			-- Fog of war button
 			if GuiImageButton(gui, 30003, math.floor(minimap_pos_x + total_size.x + 5), math.floor(minimap_pos_y + 22), "", "mods/LocationTracker/files/fog_of_war_"..(fog_of_war and "on" or "off") ..".png") then
 				fog_of_war = not fog_of_war
-				generate_color_data()
+				regenerate_drawables()
 				ModSettingSetNextValue("LocationTracker.fog_of_war", fog_of_war, false)
 			end
 			if fog_of_war then
