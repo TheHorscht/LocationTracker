@@ -146,6 +146,10 @@ local function generate_color_data()
 	end
 end
 
+-- Purely an optimization function, transforms the table of pixels into rectangles to draw
+-- by consolidating neighboring pixels with the same colors into rects, also analyses which
+-- rects appear most and consolidates them even more into one "most_prevalent_color" rect
+-- which gets drawn first in the background over the whole area of the map
 local function regenerate_drawables()
 	if not map then return end
 	-- measure("generate_color_data()", generate_color_data, 1)
