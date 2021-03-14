@@ -14,7 +14,7 @@ end
 
 function EZMouse_draw_action(arg1)
   local entity_id = GetUpdatedEntityID()
-  if EntityHasTag(entity_id, "player_unit") and GlobalsGetValue("EZMouse_prevent_wand_firing", "0") ~= "1" then
+  if not (EntityHasTag(entity_id, "player_unit") and GlobalsGetValue("EZMouse_prevent_wand_firing", "0") == "1") then
     old_draw_action(arg1)
   end
 end
@@ -33,7 +33,7 @@ end
 
 function EZMouse__play_permanent_card(arg1)
   local entity_id = GetUpdatedEntityID()
-  if EntityHasTag(entity_id, "player_unit") and GlobalsGetValue("EZMouse_prevent_wand_firing", "0") ~= "1" then
+  if not (EntityHasTag(entity_id, "player_unit") and GlobalsGetValue("EZMouse_prevent_wand_firing", "0") == "1") then
     old__play_permanent_card(arg1)
   end
 end

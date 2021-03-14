@@ -1,6 +1,9 @@
 UNRELEASED:
 - Huge performance improvement for big maps
 
+v1.0.4:
+- FIX: Other entities other than the player were not able to fire their wands.
+
 v1.0.3:
 - FIX: Prevent wands with always casts from firing while dragging/resizing.
 
