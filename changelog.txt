@@ -1,3 +1,6 @@
+UNRELEASED:
+- Minimap is now hidden while inventory is open
+
 v1.0.4:
 - FIX: Other entities other than the player were not able to fire their wands.
 

@@ -38,6 +38,16 @@ local visible = true
 local fog_of_war = true
 local resize_mode = "resolution"
 
+function is_inventory_open()
+	local player = EntityGetWithTag("player_unit")[1]
+	if player then
+		local inventory_gui_component = EntityGetFirstComponentIncludingDisabled(player, "InventoryGuiComponent")
+		if inventory_gui_component then
+			return ComponentGetValue2(inventory_gui_component, "mActive")
+		end
+	end
+end
+
 -- Given x, y world position and a chunk offset, returns the wrapped biome map chunk
 -- for instance at a biome map width of 10 at 512 pixels width per chunk, the entire map would be 5120 pixels wide,
 -- if x == 4096+1, biome_x would be 8, with offset_x == 3, it would wrap around to 1
@@ -330,7 +340,7 @@ function OnWorldPreUpdate()
 		end
 	end
 
-	if map then
+	if map and not is_inventory_open() then
 		if visible or not locked then
 			if not color_data then
 				generate_color_data()
