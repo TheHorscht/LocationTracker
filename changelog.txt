@@ -1,4 +1,4 @@
-UNRELEASED:
+v1.0.5:
 - Minimap is now hidden while inventory is open
 
 v1.0.4:
