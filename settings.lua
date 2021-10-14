@@ -112,6 +112,13 @@ mod_settings =
 		ui_fn = mod_setting_slider_custom,
 	},
 	{
+		id = "use_custom_map_file",
+		ui_name = "Use custom_map.png",
+		ui_description = "If enabled and a file named 'custom_map.png' exists in the root directory of the mod,\nwill use that instead of the game's map.",
+		value_default = false,
+		scope = MOD_SETTING_SCOPE_NEW_GAME,
+	},
+	{
 		ui_fn = mod_setting_vertical_spacing,
 		not_setting = true,
 	},

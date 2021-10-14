@@ -1,25 +1,9 @@
-dofile_once("mods/LocationTracker/files/encode_coords.lua")
+dofile_once("mods/LocationTracker/files/map_utils.lua")
 
-local function _BiomeMapGetPixel(x, y)
-  local abgr = BiomeMapGetPixel(x, y)
-  local b = bit.rshift(bit.band(abgr, 0xff0000), 2 * 8)
-  local g = bit.rshift(bit.band(abgr, 0x00ff00), 1 * 8)
-  local r = bit.band(abgr, 0x0000ff)
-  return r, g, b
-end
-
+local custom_map_file = "mods/LocationTracker/custom_map.png"
 local w, h = BiomeMapGetSize()
-local content = "return {"
-content = content .. "width = " .. w .. ","
-content = content .. "height = " .. h .. ","
-content = content .. "map = {"
-for y=0,h-1 do
-  for x=0,w-1 do
-    local r, g, b = _BiomeMapGetPixel(x, y)
-    content = content .. "["..encode_coords(x, y).."] = " .. string.format("{ r = %s, g = %s, b = %s },", r, g, b)
-  end
+if ModSettingGet("LocationTracker.use_custom_map_file") and does_png_exist(custom_map_file) then
+  BiomeMapLoadImage(0,0, custom_map_file)
 end
-
-content = content .. "}}\n"
-ModTextFileSetContent("mods/LocationTracker/_virtual/map.lua", content)
+ModTextFileSetContent("mods/LocationTracker/_virtual/map.lua", make_string(w, h))
 GameAddFlagRun("locationtracker_reload_map")
