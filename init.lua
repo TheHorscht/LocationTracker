@@ -402,12 +402,9 @@ end
 
 local function get_map_data()
 	if compatibility_mode then
-		GamePrint("Using compat mode")
 		return get_map_data_by_biome_filename()
 	else
-		GamePrint("Using regular mode")
 		return dofile_once("mods/LocationTracker/_virtual/map.lua")
-		-- return loadfile("mods/LocationTracker/_virtual/map.lua")()
 	end
 end
 

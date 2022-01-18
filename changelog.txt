@@ -1,3 +1,6 @@
+v1.2.1:
+- Forgot to remove a GamePrint
+
 v1.2.0:
 - Huge performance improvement for big maps
 - Add a compatibility mode setting, which uses a different method of getting the map data, try this if this mod causes problems with other mods.
