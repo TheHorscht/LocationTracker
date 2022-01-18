@@ -1,12 +1,10 @@
 dofile_once("mods/LocationTracker/files/encode_coords.lua")
+dofile_once("mods/LocationTracker/files/map_utils.lua")
 dofile_once("data/scripts/lib/utilities.lua")
 local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
 local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
-
 local EZMouse = dofile_once("mods/LocationTracker/lib/EZMouse/EZMouse.lua")
 ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/lib/EZMouse/gun_append.lua")
-
-dofile_once("mods/LocationTracker/measure.lua")
 
 local function truncate_float(num)
   return num + (2^52 + 2^51) - (2^52 + 2^51)
@@ -30,6 +28,7 @@ local seen_areas
 local map
 local zoom
 local show_location
+local compatibility_mode
 local sprite_scale = 3
 local color_data = {}
 local size = {}
@@ -150,7 +149,6 @@ local function generate_color_data()
 	for y=0, size.y-1 do
 		for x=0, size.x-1 do
 			local idx = x+y*size.x
-			-- color_data[idx] = measure("get_color_data INSIDE", function() return get_color_data(cx, cy, x - halfsize_x, y - halfsize_y) end, 5000, "ns")
 			color_data[idx] = get_color_data(cx, cy, x - halfsize_x, y - halfsize_y)
 		end
 	end
@@ -162,18 +160,13 @@ end
 -- which gets drawn first in the background over the whole area of the map
 local function regenerate_drawables()
 	if not map then return end
-	-- measure("generate_color_data()", generate_color_data, 1)
-	print("Regebnerating gdrawlable")
 	generate_color_data()
-	-- local size_x = size.x
-	-- local size = { x = 50, y = 3 }
 	local pixels = {}
 	local drawables = {}
 	for y=0, size.y-1 do
 		for x=0, size.x-1 do
-			local idx = x+y*size.x -- size.x
-			local cdata = color_data[idx]--color_data[idx]
-			-- cdata.x, cdata.y = x, y
+			local idx = x+y*size.x
+			local cdata = color_data[idx]
 			if cdata.anim == "anim_0" then -- 0 is fully explored
 				pixels[idx] = cdata
 			elseif cdata.anim == "anim_101" then -- 101 is fully black
@@ -185,9 +178,7 @@ local function regenerate_drawables()
 				cdata.width = 1
 				cdata.height = 1
 				table.insert(drawables, cdata)
-				-- pixels[idx] = cdata
 			end
-			-- popf("fofofo: %s", cdata.anim)
 		end
 	end
 
@@ -228,18 +219,10 @@ local function regenerate_drawables()
 					-- Check current color
 					if not isSameColor(color, getColorAt(x, tempY)) then
 						local c = getColorAt(x, tempY)
-						-- if math.abs(color.r - c.r) < 0.001 and math.abs(color.g - c.g) < 0.001 and math.abs(color.b - c.b) < 0.001 then
-						-- popf("color.r(%f) == c.r(%f)? %s", color.r, c.r, color.r == c.r)
-						-- popf("color: r = %f, g = %f, b = %f", color.r, color.g, color.b)
-						-- popf("getColorAt(x, tempY): r = %f, g = %f, b = %f", getColorAt(x, tempY).r, getColorAt(x, tempY).g, getColorAt(x, tempY).b)
-						-- end
 						break
 					end
 					-- Expand as far to the right as we can, stop if we meet a pixel that is already part of a completed big rect or has a different color
 					while x+1 <= maxX and isSameColor(color, getColorAt(x+1, tempY)) and not completed_rects[encode_coords(x+1, tempY)] do
-						if startY == 0 and startX == 0 and width > 1 and GameGetFrameNum() % 60 == 0 then
-							-- print(width)
-						end
 						width = width + 1
 						x = x + 1
 					end
@@ -250,9 +233,6 @@ local function regenerate_drawables()
 
 				local biggest
 				for i, v in ipairs(rects) do
-					-- if startY == 0 and startX == 0 and GameGetFrameNum() % 60 == 0 then
-					-- 	print(string.format("w: %d, h: %d", v.width, v.height))
-					-- end
 					if not biggest or biggest.area < v.area then
 						biggest = v
 					end						
@@ -277,8 +257,6 @@ local function regenerate_drawables()
 					
 					if not alreadyFound then
 						biggest.offset = { x = 0, y = 0 }
-						-- biggest.width = 1--width
-						-- biggest.height = 1--height
 						local color_hex = color_to_hex(biggest.color)
 						color_count[color_hex] = (color_count[color_hex] or 0) + 1
 						if not most_prevalent_color then
@@ -290,17 +268,12 @@ local function regenerate_drawables()
 						end
 						table.insert(drawables, biggest)
 					end
-
 				else
 					x = x + 1
 				end
 			end
-			
-
 		end	
 	end	
-
-
 
 	g_most_prevalent_color = most_prevalent_color and most_prevalent_color.color
 	g_drawables = {}
@@ -318,6 +291,7 @@ local function load_settings()
 	size.y = truncate_float(ModSettingGet("LocationTracker.size_y"))
 	zoom = ModSettingGet("LocationTracker.zoom")
 	show_location = ModSettingGet("LocationTracker.show_location")
+	compatibility_mode = ModSettingGet("LocationTracker.compatibility_mode")
 	fog_of_war = ModSettingGetNextValue("LocationTracker.fog_of_war")
 	if fog_of_war == nil then
 		fog_of_war = true
@@ -360,18 +334,21 @@ for i, mod_id in ipairs(ModGetActiveModIDs()) do
 	end
 end
 
-if #biome_map_script_paths == 0 then
+-- If no other mod modifies the map, this mod can safely register it's own map script to read out map data
+if (not compatibility_mode) and #biome_map_script_paths == 0 then
 	local temp_magic_numbers_filepath = "mods/LocationTracker/_virtual/magic_numbers.xml"
-	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" /> ]])
+	ModTextFileSetContent(temp_magic_numbers_filepath, [[<MagicNumbers BIOME_MAP="mods/LocationTracker/files/map_script.lua" />]])
 	ModMagicNumbersFileAdd(temp_magic_numbers_filepath)
 end
 
 -- Append to the already registered map script as late as possible when all other mods have added their appends already
 -- this append needs to be the absolute last.
 function OnMagicNumbersAndWorldSeedInitialized()
-	ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
-	for i, script_path in ipairs(biome_map_script_paths) do
-		ModLuaFileAppend(script_path, "mods/LocationTracker/files/biome_map_append.lua")
+	if not compatibility_mode then
+		ModLuaFileAppend("data/biome_impl/biome_map_newgame_plus.lua", "mods/LocationTracker/files/biome_map_append.lua")
+		for i, script_path in ipairs(biome_map_script_paths) do
+			ModLuaFileAppend(script_path, "mods/LocationTracker/files/biome_map_append.lua")
+		end
 	end
 end
 
@@ -419,34 +396,22 @@ function OnWorldInitialized()
 	frame_world_initialized = GameGetFrameNum()
 end
 
-function popf(...)
-	local msg = select(1, ...)
-	last_frame_printed = last_frame_printed or {}
-	if last_frame_printed[msg] and last_frame_printed[msg] < GameGetFrameNum() then
-		print(string.format(...))
-	end
-	last_frame_printed[msg] = GameGetFrameNum()
-end
-
 function color_to_hex(c)
 	return string.format("%02X%02X%02X", c.r * 255, c.g * 255, c.b * 255)
 end
 
-
---[[ 
-Version with most prevalent color
-
-All 60 runs took 860.81ms
-Longest run took 19.02ms
-Average run took 14.35ms
-]]
-
---[[ avg run 4.30ms with local funcs outside ]]
---[[ avg run 4.70ms with local funcs inside ]]
-
+local function get_map_data()
+	if compatibility_mode then
+		GamePrint("Using compat mode")
+		return get_map_data_by_biome_filename()
+	else
+		GamePrint("Using regular mode")
+		return dofile_once("mods/LocationTracker/_virtual/map.lua")
+		-- return loadfile("mods/LocationTracker/_virtual/map.lua")()
+	end
+end
 
 function OnWorldPreUpdate()
-	-- dofile("mods/LocationTracker/files/gui.lua")
 	gui = gui or GuiCreate()
 	GuiStartFrame(gui)
 	GuiOptionsAdd(gui, GUI_OPTION.NoPositionTween)
@@ -465,7 +430,7 @@ function OnWorldPreUpdate()
 				seen_areas[tonumber(xy_v[1])] = tonumber(xy_v[2])
 			end
 		end
-		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
+		local data = get_map_data()
 		map_width = data.width
 		map_height = data.height
 		map = data.map
@@ -475,7 +440,7 @@ function OnWorldPreUpdate()
 		seen_areas = {}
 		regenerate_drawables()
 		GlobalsSetValue("LocationTracker_seen_areas", "")
-		local data = loadfile("mods/LocationTracker/_virtual/map.lua")()
+		local data = get_map_data()
 		map_width = data.width
 		map_height = data.height
 		map = data.map
@@ -505,7 +470,7 @@ function OnWorldPreUpdate()
 		regenerate_drawables()
 		local out = ""
 		for k, v in pairs(seen_areas) do
-			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation? Concatenation is super slow
+			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation? Concatenation is kinda slow
 			if next(seen_areas,k) then
 				out = out .. ","
 			end
@@ -530,7 +495,6 @@ function OnWorldPreUpdate()
 	if map and not is_inventory_open() then
 		if visible or not locked then
 			-- Draw the map
-			-- popf("#drawables: %d, w*h: %d", #drawables, size.x * size.y)
 			-- Draw a rect spanning the entire map area behind all the other rects which then get rendered on top
 			if g_most_prevalent_color then
 				GuiZSetForNextWidget(gui, 2)
@@ -649,13 +613,6 @@ function OnWorldPreUpdate()
 				GuiTooltip(gui, "Switch to zoom mode", "")
 			end
 		end
-	end
-end
-
-function OnModPostInit()
-	local content = ModTextFileGetContent("mods/LocationTracker/_virtual/mod_colors.lua")
-	if content then
-		mod_colors = dofile("mods/LocationTracker/_virtual/mod_colors.lua")
 	end
 end
 

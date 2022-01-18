@@ -1,5 +1,6 @@
-UNRELEASED:
+v1.2.0:
 - Huge performance improvement for big maps
+- Add a compatibility mode setting, which uses a different method of getting the map data, try this if this mod causes problems with other mods.
 
 v1.1.0:
 - Add option to use a custom map file. Place an image called custom_map.png in the root folder of the mod and enable the mod setting to use it.
