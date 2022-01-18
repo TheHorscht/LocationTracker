@@ -3,8 +3,8 @@ dofile_once("mods/LocationTracker/files/map_utils.lua")
 dofile_once("data/scripts/lib/utilities.lua")
 local permutation_data = dofile_once("mods/LocationTracker/files/permutation_data.lua")
 local nxml = dofile_once("mods/LocationTracker/lib/nxml.lua")
-local EZMouse = dofile_once("mods/LocationTracker/lib/EZMouse/EZMouse.lua")
-ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/lib/EZMouse/gun_append.lua")
+local EZMouse = dofile_once("mods/LocationTracker/lib/EZMouse/EZMouse.lua")("mods/LocationTracker/lib/EZMouse/")
+-- ModLuaFileAppend("data/scripts/gun/gun.lua", "mods/LocationTracker/lib/EZMouse/gun_append.lua")
 
 local function truncate_float(num)
   return num + (2^52 + 2^51) - (2^52 + 2^51)
@@ -358,7 +358,7 @@ if biomes_all_content then
 	biome_map_offset_y = xml.attr.biome_offset_y
 end
 
-local widget = EZMouse.Widget.new({
+local widget = EZMouse.Widget({
 	x = 200,
 	y = 100,
 	width = 100,

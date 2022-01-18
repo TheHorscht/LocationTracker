@@ -1,0 +1,7 @@
+v0.2.0:
+- Reworked dragging detection, now uses GuiImageButton instead of checking left mouse down,
+  which means it uses the native mouse event blocking functionality instead of manually disabling wand shooting etc
+- Removed mouse_down event for widgets (because now it's not detectable anymore when dragging is enabled)
+
+v0.1.0:
+- Added mouse_down(self, x, y) event to widget (only works)
