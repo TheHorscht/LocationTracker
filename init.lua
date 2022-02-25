@@ -598,10 +598,10 @@ function OnWorldPreUpdate()
 				resize_mode = resize_mode == "zoom" and "resolution" or "zoom"
 				if resize_mode == "zoom" then
 					widget.resize_granularity = 0.1
-					widget.resize_uniform = true
+					widget.resize_keep_aspect_ratio = true
 				else
 					widget.resize_granularity = block_size.x * zoom
-					widget.resize_uniform = false
+					widget.resize_keep_aspect_ratio = false
 				end
 			end
 			if resize_mode == "zoom" then
