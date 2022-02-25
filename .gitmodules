@@ -1,0 +1,3 @@
+[submodule "lib/EZMouse"]
+	path = lib/EZMouse
+	url = https://github.com/TheHorscht/EZMouse
