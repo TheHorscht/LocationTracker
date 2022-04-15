@@ -1,3 +1,6 @@
+v1.2.3:
+- Add setting for map opacity. (At the cost of worse performance)
+
 v1.2.2:
 - Big for me but small for you improvement to the dragging/resizing code
 

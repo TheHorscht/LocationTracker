@@ -99,6 +99,22 @@ mod_settings =
 		change_fn = mod_setting_change_callback,
 	},
 	{
+		id = "alpha",
+		ui_name = "Opacity",
+		ui_description = [[
+WARNING:
+Setting this to anything lower than 100 will result in slightly worse performance,
+because one of my optimizations won't work anymore since it relies on drawing things
+on top of one another, which transparency breaks.]],
+		value_default = 1,
+		value_min = 0,
+		value_max = 1,
+		value_display_multiplier = 100,
+		value_display_formatting = " $0",
+		scope = MOD_SETTING_SCOPE_RUNTIME,
+		change_fn = mod_setting_change_callback,
+	},
+	{
 		id = "zoom",
 		ui_name = "Zoom",
 		ui_description = "",

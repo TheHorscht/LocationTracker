@@ -28,6 +28,7 @@ local seen_areas
 local map
 local zoom
 local show_location
+local alpha
 local compatibility_mode
 local sprite_scale = 3
 local color_data = {}
@@ -275,12 +276,16 @@ local function regenerate_drawables()
 		end	
 	end	
 
-	g_most_prevalent_color = most_prevalent_color and most_prevalent_color.color
-	g_drawables = {}
-	for i, v in ipairs(drawables) do
-		if color_to_hex(v.color) ~= most_prevalent_color.color_hex then
-			table.insert(g_drawables, v)
+	if alpha > 0.98 then
+		g_most_prevalent_color = most_prevalent_color and most_prevalent_color.color
+		g_drawables = {}
+		for i, v in ipairs(drawables) do
+			if color_to_hex(v.color) ~= most_prevalent_color.color_hex then
+				table.insert(g_drawables, v)
+			end
 		end
+	else
+		g_drawables = drawables
 	end
 end
 
@@ -291,6 +296,7 @@ local function load_settings()
 	size.y = truncate_float(ModSettingGet("LocationTracker.size_y"))
 	zoom = ModSettingGet("LocationTracker.zoom")
 	show_location = ModSettingGet("LocationTracker.show_location")
+	alpha = ModSettingGet("LocationTracker.alpha")
 	compatibility_mode = ModSettingGet("LocationTracker.compatibility_mode")
 	fog_of_war = ModSettingGetNextValue("LocationTracker.fog_of_war")
 	if fog_of_war == nil then
@@ -493,7 +499,7 @@ function OnWorldPreUpdate()
 		if visible or not locked then
 			-- Draw the map
 			-- Draw a rect spanning the entire map area behind all the other rects which then get rendered on top
-			if g_most_prevalent_color then
+			if alpha > 0.98 and g_most_prevalent_color then
 				GuiZSetForNextWidget(gui, 2)
 				GuiColorSetForNextWidget(gui, g_most_prevalent_color.r, g_most_prevalent_color.g, g_most_prevalent_color.b, 1)
 				GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
@@ -515,7 +521,7 @@ function OnWorldPreUpdate()
 					minimap_pos_y + (drawable.y + drawable.offset.y) * zoom * block_size.y, -- y:number
 					"mods/LocationTracker/files/color_sprites.xml", -- sprite_filename:string
 					-- "mods/LocationTracker/files/white_3x3.png", --color_sprites.xml", -- sprite_filename:string
-					1, -- alpha:number
+					alpha, -- alpha:number
 					drawable.scale_x * zoom / sprite_scale * 1 * drawable.width, -- scale:number
 					zoom / sprite_scale * 1 * drawable.height, --color_data[idx].rot -- rotation:number
 					drawable.rot, -- scale_y:number
