@@ -1,3 +1,6 @@
+v1.2.4:
+- Improve performance for long runs and reduce lag spikes
+
 v1.2.3:
 - Add setting for map opacity. (At the cost of worse performance)
 

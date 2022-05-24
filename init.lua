@@ -442,6 +442,13 @@ function OnWorldPreUpdate()
 				seen_areas[tonumber(xy_v[1])] = tonumber(xy_v[2])
 			end
 		end
+		-- FOR DEBUGGING
+		-- for y=0, 500 do
+		-- 	for x=0, 500 do
+		-- 		-- add_chunk_bitmask(x-50, y-50, 511)
+		-- 		add_chunk_bitmask(x-50, y-50, 127)
+		-- 	end
+		-- end
 		local data = get_map_data()
 		map_width = data.width
 		map_height = data.height
@@ -480,14 +487,12 @@ function OnWorldPreUpdate()
 	if current_chunk_bitmask ~= new_value then
 		seen_areas[chunk_coords] = new_value
 		regenerate_drawables()
-		local out = ""
+		-- TODO: Do this without strings at all? ModSettings perhaps?
+		local coord_bitmask_pair_strings = {}
 		for k, v in pairs(seen_areas) do
-			out = out .. k .. "_" .. v -- TODO: Is this possible to do without concatenation? Concatenation is kinda slow
-			if next(seen_areas,k) then
-				out = out .. ","
-			end
+			table.insert(coord_bitmask_pair_strings, k .. "_" .. v)
 		end
-		GlobalsSetValue("LocationTracker_seen_areas", out)
+		GlobalsSetValue("LocationTracker_seen_areas", table.concat(coord_bitmask_pair_strings, ","))
 	end
 
 	-- Make buttons non-interactive
