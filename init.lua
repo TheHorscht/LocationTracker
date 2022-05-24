@@ -89,11 +89,20 @@ local offsets = {
 	{ x = 0, y = 0 },
 }
 
+local function get_chunk_bitmask(chunk_x, chunk_y)
+	local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+	return seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+end
+
+local function add_chunk_bitmask(chunk_x, chunk_y, bitmask)
+	seen_areas[encode_coords(chunk_x, chunk_y)] = bitmask
+end
+
 function get_color_data(x, y, offset_x, offset_y)
 	local biome_x, biome_y = get_biome_map_coords(map_width, map_height, x, y, offset_x, offset_y)
 	local chunk_x, chunk_y = get_chunk_coords(x + 512 * offset_x, y + 512 * offset_y)
-	local chunk = map[encode_coords(biome_x, biome_y)]
-	local chunk_bitmask = seen_areas[encode_coords(chunk_x, chunk_y)] or 0
+	local chunk_color = map[encode_coords(biome_x, biome_y)]
+	local chunk_bitmask = get_chunk_bitmask(chunk_x, chunk_y)
 	local rot, scale_x, scale_y = 0, 1, 1
 	if not fog_of_war then
 		chunk_bitmask = 0
@@ -123,7 +132,7 @@ function get_color_data(x, y, offset_x, offset_y)
 		rot = rot,
 		offset = offsets[quadrant+1],
 		is_fully_black = chunk_bitmask == 101,
-		color = { r = chunk.r / 255, g = chunk.g / 255, b = chunk.b / 255 },
+		color = { r = chunk_color.r / 255, g = chunk_color.g / 255, b = chunk_color.b / 255 },
 	}
 end
 
@@ -219,7 +228,6 @@ local function regenerate_drawables()
 					width = 1
 					-- Check current color
 					if not isSameColor(color, getColorAt(x, tempY)) then
-						local c = getColorAt(x, tempY)
 						break
 					end
 					-- Expand as far to the right as we can, stop if we meet a pixel that is already part of a completed big rect or has a different color
@@ -255,17 +263,13 @@ local function regenerate_drawables()
 						end
 						y2 = y2 + 1
 					end
-					
+
 					if not alreadyFound then
 						biggest.offset = { x = 0, y = 0 }
 						local color_hex = color_to_hex(biggest.color)
 						color_count[color_hex] = (color_count[color_hex] or 0) + 1
-						if not most_prevalent_color then
+						if (not most_prevalent_color) or (color_count[color_hex] > most_prevalent_color.count) then
 							most_prevalent_color = { color_hex = color_hex, color = biggest.color, count = color_count[color_hex] }
-						else
-							if color_count[color_hex] > most_prevalent_color.count then
-								most_prevalent_color = { color_hex = color_hex, color = biggest.color, count = color_count[color_hex] }
-							end
 						end
 						table.insert(drawables, biggest)
 					end
@@ -279,10 +283,15 @@ local function regenerate_drawables()
 	if alpha > 0.98 then
 		g_most_prevalent_color = most_prevalent_color and most_prevalent_color.color
 		g_drawables = {}
-		for i, v in ipairs(drawables) do
-			if color_to_hex(v.color) ~= most_prevalent_color.color_hex then
-				table.insert(g_drawables, v)
+		-- This scenario only happens if there are no fully black or fully revealed squares
+		if most_prevalent_color then
+			for i, v in ipairs(drawables) do
+				if not (v.anim == "anim_0" or v.anim == "anim_101") or color_to_hex(v.color) ~= most_prevalent_color.color_hex then
+					table.insert(g_drawables, v)
+				end
 			end
+		else
+			g_drawables = drawables
 		end
 	else
 		g_drawables = drawables
@@ -460,7 +469,7 @@ function OnWorldPreUpdate()
 	sub_y = math.floor(sub_y / (512 / block_size.y))
 	local current_sub_value = bit.lshift(1, sub_x + sub_y * block_size.x)
 	local chunk_coords = encode_coords(chunk_x, chunk_y)
-	local current_chunk_bitmask = seen_areas[chunk_coords] or 0
+	local current_chunk_bitmask = get_chunk_bitmask(chunk_x, chunk_y)
 	local new_value = bit.bor(current_chunk_bitmask, current_sub_value)
 	-- Invalidate the cache when moving to a new chunk
 	if chunk_x ~= previous_chunk_x or chunk_y ~= previous_chunk_y then
