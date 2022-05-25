@@ -128,6 +128,13 @@ on top of one another, which transparency breaks.]],
 		ui_fn = mod_setting_slider_custom,
 	},
 	{
+		id = "show_biome_name",
+		ui_name = "Show biome name",
+		value_default = "top",
+		values = { {"off","Off"}, {"top","Top"}, {"bottom","Bottom"} },
+		scope = MOD_SETTING_SCOPE_RUNTIME,
+	},
+	{
 		id = "compatibility_mode",
 		ui_name = "Compatibility mode",
 		ui_description = "Use compatibily mode, which tries a different method of getting map data, some colors might be wrong though. Use this when using mods that alter the biome map and you're having problems.",
@@ -174,6 +181,7 @@ function ModSettingsUpdate( init_scope )
 	local old_version = mod_settings_get_version( mod_id ) -- This can be used to migrate some settings between mod versions.
 	adjust_setting_values()
 	mod_settings_update( mod_id, mod_settings, init_scope )
+	ModSettingSet(mod_id .. ".ui_needs_update", true)
 end
 
 -- This function should return the number of visible setting UI elements.

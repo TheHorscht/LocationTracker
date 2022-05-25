@@ -1,3 +1,6 @@
+v1.3.0:
+- Now shows biome name and parallel world counter above the map. This can be changed in the settings.
+
 v1.2.4:
 - Improve performance for long runs and reduce lag spikes
 

@@ -38,6 +38,7 @@ local total_size
 local locked = true
 local visible = true
 local fog_of_war = true
+local show_biome_name = "top"
 local resize_mode = "resolution"
 
 function is_inventory_open()
@@ -308,6 +309,7 @@ local function load_settings()
 	alpha = ModSettingGet("LocationTracker.alpha")
 	compatibility_mode = ModSettingGet("LocationTracker.compatibility_mode")
 	fog_of_war = ModSettingGetNextValue("LocationTracker.fog_of_war")
+	show_biome_name = ModSettingGet("LocationTracker.show_biome_name")
 	if fog_of_war == nil then
 		fog_of_war = true
 	end
@@ -421,6 +423,25 @@ local function get_map_data()
 	else
 		return dofile_once("mods/LocationTracker/_virtual/map.lua")
 	end
+end
+
+local function get_current_biome_name()
+	local cx, cy = GameGetCameraPos()
+	local px, py = GetParallelWorldPosition(cx, cy)
+	local biome_name = GameTextGetTranslatedOrNot(BiomeMapGetName(cx, cy)) -- GameTextGet
+	if biome_name == "_EMPTY_" then
+		return ""
+	end
+	-- Capitalize every word
+	biome_name = biome_name:gsub("(%a)([%w_']*)", function(first, rest)
+		return first:upper()..rest:lower()
+	end)
+	if px > 0 then
+		biome_name = GameTextGet("$biome_east", biome_name) .. ("(%d)"):format(math.abs(px))
+	elseif px < 0 then
+		biome_name = GameTextGet("$biome_west", biome_name) .. ("(%d)"):format(math.abs(px))
+	end
+	return biome_name
 end
 
 function OnWorldPreUpdate()
@@ -547,6 +568,16 @@ function OnWorldPreUpdate()
 			GuiZSetForNextWidget(gui, -999)
 			GuiOptionsAddForNextWidget(gui, GUI_OPTION.NonInteractive)
 			GuiImageNinePiece(gui, 40000, minimap_pos_x, minimap_pos_y, total_size.x, total_size.y, 3, "mods/LocationTracker/files/border.png")
+			-- Region Text + PW Counter
+			if show_biome_name ~= "off" then
+				local map_name = get_current_biome_name()
+				local text_width = GuiGetTextDimensions(gui, map_name)
+				local y = minimap_pos_y - 12
+				if show_biome_name == "bottom" then
+					y = minimap_pos_y + total_size.y + 2
+				end
+				GuiText(gui, minimap_pos_x + total_size.x / 2 - text_width / 2, y, map_name)
+			end
 			-- Draw the dot in the center
 			local blink_delay = 30
 			if (show_location == "blink" and GameGetFrameNum() % (blink_delay * 2) >= blink_delay)
