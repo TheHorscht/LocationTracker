@@ -425,22 +425,36 @@ local function get_map_data()
 	end
 end
 
+local biome_name_cache = {}
 local function get_current_biome_name()
 	local cx, cy = GameGetCameraPos()
 	local px, py = GetParallelWorldPosition(cx, cy)
 	local biome_name = GameTextGetTranslatedOrNot(BiomeMapGetName(cx, cy)) -- GameTextGet
+	local biome_name_key = biome_name .. tostring(px)
+	-- Don't do the whole capitalization every frame,
+	-- instead cache the already "translated" biome names and return that
+	-- Downside is that it won't update if the game language is being changed after it has been cached,
+	-- but who changes languages mid run?
+	if biome_name_cache[biome_name_key] then
+		return biome_name_cache[biome_name_key]
+	end
 	if biome_name == "_EMPTY_" then
-		return ""
+		biome_name = ""
+	else
+		-- Capitalize every word
+		biome_name = biome_name:gsub("([^%s])([%w_']*)", function(first, rest)
+			return first:upper()..rest:lower()
+		end)
 	end
-	-- Capitalize every word
-	biome_name = biome_name:gsub("(%a)([%w_']*)", function(first, rest)
-		return first:upper()..rest:lower()
-	end)
-	if px > 0 then
-		biome_name = GameTextGet("$biome_east", biome_name) .. ("(%d)"):format(math.abs(px))
-	elseif px < 0 then
-		biome_name = GameTextGet("$biome_west", biome_name) .. ("(%d)"):format(math.abs(px))
+	if px ~= 0 then
+		local direction = px > 0 and "east" or "west"
+		if biome_name == "" then
+			biome_name = GameTextGet("$biome_" .. direction, ("%d"):format(math.abs(px)))
+		else
+			biome_name = GameTextGet("$biome_" .. direction, ("%s (%d)"):format(biome_name, math.abs(px)))
+		end
 	end
+	biome_name_cache[biome_name_key] = biome_name
 	return biome_name
 end
 

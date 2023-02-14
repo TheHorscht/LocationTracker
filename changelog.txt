@@ -1,3 +1,7 @@
+UNRELEASED:
+- Show east/west counter even in biomes without a name
+- Small performance improvement regarding the formatting of biome names
+
 v1.3.0:
 - Now shows biome name and parallel world counter above the map. This can be changed in the settings.
 
