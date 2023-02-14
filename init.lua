@@ -245,7 +245,7 @@ local function regenerate_drawables()
 				for i, v in ipairs(rects) do
 					if not biggest or biggest.area < v.area then
 						biggest = v
-					end						
+					end
 				end
 
 				if biggest then
@@ -278,8 +278,8 @@ local function regenerate_drawables()
 					x = x + 1
 				end
 			end
-		end	
-	end	
+		end
+	end
 
 	if alpha > 0.98 then
 		g_most_prevalent_color = most_prevalent_color and most_prevalent_color.color
@@ -491,7 +491,7 @@ function OnWorldPreUpdate()
 
 	local cx, cy = get_position()
 	local chunk_x, chunk_y = get_chunk_coords(cx, cy)
-	local sub_x = cx - chunk_x * 512 
+	local sub_x = cx - chunk_x * 512
 	local sub_y = cy - chunk_y * 512
 	sub_x = math.floor(sub_x / (512 / block_size.x))
 	sub_y = math.floor(sub_y / (512 / block_size.y))
