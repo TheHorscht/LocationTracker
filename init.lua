@@ -149,7 +149,7 @@ local function get_position()
 	else
 		x, y = GameGetCameraPos()
 	end
-	return x, y
+	return math.floor(x), math.floor(y)
 end
 
 local function generate_color_data()

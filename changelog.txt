@@ -1,4 +1,5 @@
-UNRELEASED:
+v1.3.1:
+- FIX: Floating point rounding error would sometimes break the mod and make the map disappear
 - Show east/west counter even in biomes without a name
 - Small performance improvement regarding the formatting of biome names
 
