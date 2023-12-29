@@ -1,3 +1,6 @@
+v1.3.2:
+- FIX: Gamepad detection when polymorphed, resulting in buttons being focused
+
 v1.3.1:
 - FIX: Floating point rounding error would sometimes break the mod and make the map disappear
 - Show east/west counter even in biomes without a name

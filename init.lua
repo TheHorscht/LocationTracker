@@ -530,18 +530,10 @@ function OnWorldPreUpdate()
 		GlobalsSetValue("LocationTracker_seen_areas", table.concat(coord_bitmask_pair_strings, ","))
 	end
 
-	-- Make buttons non-interactive
-	-- Stolen from goki's things ( ͡° ͜ʖ ͡°)
-	local player = EntityGetWithTag("player_unit")[1]
-	if player then
-		local platform_shooter_player = EntityGetFirstComponentIncludingDisabled(player, "PlatformShooterPlayerComponent")
-		if platform_shooter_player then
-			local is_gamepad = ComponentGetValue2(platform_shooter_player, "mHasGamepadControlsPrev")
-			if is_gamepad then
-				GuiOptionsAdd(gui, GUI_OPTION.NonInteractive)
-				GuiOptionsAdd(gui, GUI_OPTION.AlwaysClickable)
-			end
-		end
+	-- Make buttons non-interactive for gamepad users, sadly
+	if GameGetIsGamepadConnected() then
+		GuiOptionsAdd(gui, GUI_OPTION.NonInteractive)
+		GuiOptionsAdd(gui, GUI_OPTION.AlwaysClickable)
 	end
 
 	if map and not is_inventory_open() then
