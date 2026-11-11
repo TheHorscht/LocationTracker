@@ -1,3 +1,6 @@
+v1.3.3:
+- FIX: Implemented a rudimentary protection against other mods manually running the map script in the wrong context (HOW DARE YOU)
+
 v1.3.2:
 - FIX: Gamepad detection when polymorphed, resulting in buttons being focused
 

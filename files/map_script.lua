@@ -1,3 +1,9 @@
+-- Protect against other mods who might run the map script manually
+-- Not sure what side effects this will have ¯\_(ツ)_/¯
+if not ModTextFileSetContent then
+  return
+end
+
 dofile_once("mods/LocationTracker/files/map_utils.lua")
 
 local custom_map_file = "mods/LocationTracker/custom_map.png"
